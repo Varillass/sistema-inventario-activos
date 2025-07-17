@@ -4,10 +4,7 @@ set -o errexit
 
 # Actualizar pip y instalar dependencias
 pip install --upgrade pip
-pip install -r requirements.txt
-
-# Verificar que psycopg2 esté instalado correctamente
-pip show psycopg2-binary
+pip install -r requirements.txt --no-cache-dir
 
 # Recolectar archivos estáticos
 python manage.py collectstatic --no-input
@@ -15,7 +12,7 @@ python manage.py collectstatic --no-input
 # Ejecutar migraciones
 python manage.py migrate
 
-# Crear superusuario si no existe (usando variables de entorno)
+# Crear superusuario si no existe
 python manage.py shell <<EOF
 from django.contrib.auth import get_user_model
 User = get_user_model()
