@@ -43,7 +43,7 @@ for user_data in usuarios_adicionales:
             first_name=user_data['first_name'],
             last_name=user_data['last_name']
         )
-        print(f'Usuario creado: {user_data["username"]}/{user_data["password"]}')
+        print('Usuario creado: ' + user_data['username'] + '/' + user_data['password'])
 
 # Crear áreas
 areas = ['Administración', 'Contabilidad', 'Ventas', 'Almacén', 'Sistemas', 'Recursos Humanos', 'Mantenimiento']
