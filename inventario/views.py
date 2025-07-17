@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
 import json
 from .models import Equipo, Estado, Area
 from django.db.models import Count
@@ -9,6 +10,7 @@ from django.db.models import Count
 
 # Create your views here.
 
+@login_required
 def dashboard(request):
     # Totales por estado
     estados = Estado.objects.all()
@@ -29,6 +31,7 @@ def dashboard(request):
     }
     return render(request, 'inventario/dashboard.html', context)
 
+@login_required
 def equipos_lista(request):
     equipos = Equipo.objects.all().select_related('area', 'estado')
     
@@ -41,6 +44,7 @@ def equipos_lista(request):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+@login_required
 def crear_equipo(request):
     try:
         data = json.loads(request.body)
@@ -102,6 +106,7 @@ def crear_equipo(request):
         }, status=500)
 
 @require_http_methods(["GET"])
+@login_required
 def obtener_equipo(request, equipo_id):
     try:
         equipo = get_object_or_404(Equipo, id=equipo_id)
@@ -131,6 +136,7 @@ def obtener_equipo(request, equipo_id):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+@login_required
 def editar_equipo(request, equipo_id):
     try:
         equipo = get_object_or_404(Equipo, id=equipo_id)
@@ -203,6 +209,7 @@ def editar_equipo(request, equipo_id):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+@login_required
 def eliminar_equipo(request, equipo_id):
     try:
         equipo = get_object_or_404(Equipo, id=equipo_id)
@@ -222,6 +229,7 @@ def eliminar_equipo(request, equipo_id):
             'error': f'Error al eliminar el equipo: {str(e)}'
         }, status=500)
 
+@login_required
 def exportar_equipos_pdf(request):
     """
     Vista para exportar equipos a PDF - TEMPORALMENTE DESHABILITADA
@@ -231,6 +239,7 @@ def exportar_equipos_pdf(request):
         'error': 'La exportación PDF está temporalmente deshabilitada. Funcionalidad disponible próximamente.'
     }, status=503)
 
+@login_required
 def descargar_plantilla_excel(request):
     """
     Vista para descargar plantilla Excel - TEMPORALMENTE DESHABILITADA
@@ -242,6 +251,7 @@ def descargar_plantilla_excel(request):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+@login_required
 def importar_equipos_excel(request):
     """
     Vista para importar equipos desde Excel - TEMPORALMENTE DESHABILITADA

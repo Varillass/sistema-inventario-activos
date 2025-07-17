@@ -28,6 +28,23 @@ if not User.objects.filter(username='admin').exists():
     User.objects.create_superuser('admin', 'admin@inventario.com', 'admin123')
     print('Superusuario creado: admin/admin123')
 
+# Crear usuarios adicionales
+usuarios_adicionales = [
+    {'username': 'inventario', 'email': 'inventario@empresa.com', 'password': 'inventario123', 'first_name': 'Usuario', 'last_name': 'Inventario'},
+    {'username': 'supervisor', 'email': 'supervisor@empresa.com', 'password': 'supervisor123', 'first_name': 'Usuario', 'last_name': 'Supervisor'},
+]
+
+for user_data in usuarios_adicionales:
+    if not User.objects.filter(username=user_data['username']).exists():
+        User.objects.create_user(
+            username=user_data['username'],
+            email=user_data['email'],
+            password=user_data['password'],
+            first_name=user_data['first_name'],
+            last_name=user_data['last_name']
+        )
+        print(f'Usuario creado: {user_data["username"]}/{user_data["password"]}')
+
 # Crear áreas
 areas = ['Administración', 'Contabilidad', 'Ventas', 'Almacén', 'Sistemas', 'Recursos Humanos', 'Mantenimiento']
 for nombre in areas:
