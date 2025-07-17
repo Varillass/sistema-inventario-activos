@@ -1,0 +1,1046 @@
+{% extends 'inventario/base.html' %}
+
+{% block title %}Equipos - Inventario Pro{% endblock %}
+{% block page_title %}Gestión de Equipos{% endblock %}
+
+{% block content %}
+    <!-- Filtros y acciones -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <select class="form-select" id="filtroArea">
+                                <option value="">Todas las áreas</option>
+                                {% for area in areas %}
+                                <option value="{{ area.nombre }}">{{ area.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="filtroEstado">
+                                <option value="">Todos los estados</option>
+                                {% for estado in estados %}
+                                <option value="{{ estado.nombre }}">{{ estado.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="filtroTipo">
+                                <option value="">Todos los tipos</option>
+                                <option value="Compresora">Compresora</option>
+                                <option value="Motor">Motor</option>
+                                <option value="Bomba">Bomba</option>
+                                <option value="Generador">Generador</option>
+                                <option value="Aire Acondicionado">Aire Acondicionado</option>
+                                <option value="Caldera">Caldera</option>
+                                <option value="Ventilador">Ventilador</option>
+                                <option value="Transformador">Transformador</option>
+                                <option value="UPS">UPS</option>
+                                <option value="Servidor">Servidor</option>
+                                <option value="Impresora">Impresora</option>
+                                <option value="Scanner">Scanner</option>
+                                <option value="Router">Router</option>
+                                <option value="Switch">Switch</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-secondary" id="limpiarFiltros">
+                                <i class="fas fa-times"></i> Limpiar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-end">
+                    <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#agregarEquipoModal">
+                        <i class="fas fa-plus"></i> Agregar Equipo
+                    </button>
+                    <div class="btn-group me-2" role="group">
+                        <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#importarExcelModal">
+                            <i class="fas fa-file-excel"></i> Importar Excel
+                        </button>
+                        <button class="btn btn-outline-secondary" id="descargarPlantillaBtn">
+                            <i class="fas fa-download"></i> Plantilla
+                        </button>
+                    </div>
+                    <button class="btn btn-outline-primary" id="exportarPdfBtn">
+                        <i class="fas fa-file-pdf"></i> Exportar PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de equipos -->
+    <div class="card">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="fas fa-cogs text-primary"></i> Lista de Equipos</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="equiposTable" class="table table-hover">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Tipo</th>
+                            <th>N° Serie</th>
+                            <th>Marca/Modelo</th>
+                            <th>Precio</th>
+                            <th>Área</th>
+                            <th>Estado</th>
+                            <th>Garantía</th>
+                            <th>Fecha Registro</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for equipo in equipos %}
+                        <tr>
+                            <td>
+                                <strong>{{ equipo.nombre }}</strong>
+                                {% if equipo.observacion %}
+                                <br><small class="text-muted">{{ equipo.observacion|truncatechars:50 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ equipo.tipo }}</span>
+                            </td>
+                            <td>
+                                <code>{{ equipo.numero_serie }}</code>
+                            </td>
+                            <td>
+                                {% if equipo.marca or equipo.modelo %}
+                                    <strong>{{ equipo.marca|default:"" }}</strong>
+                                    {% if equipo.marca and equipo.modelo %}<br>{% endif %}
+                                    <small class="text-muted">{{ equipo.modelo|default:"" }}</small>
+                                {% else %}
+                                    <span class="text-muted">No especificado</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if equipo.precio %}
+                                    <strong class="text-success">${{ equipo.precio|floatformat:2 }}</strong>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <i class="fas fa-building text-muted me-1"></i>
+                                {{ equipo.area.nombre }}
+                            </td>
+                            <td>
+                                {% if equipo.estado.nombre == 'Operativo' %}
+                                <span class="badge bg-success">{{ equipo.estado.nombre }}</span>
+                                {% elif equipo.estado.nombre == 'Mantenimiento' %}
+                                <span class="badge bg-warning">{{ equipo.estado.nombre }}</span>
+                                {% else %}
+                                <span class="badge bg-danger">{{ equipo.estado.nombre }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if equipo.garantia_hasta %}
+                                    {% if equipo.garantia_vigente %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-shield-alt"></i> 
+                                            Vigente
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-exclamation-triangle"></i> 
+                                            Vencida
+                                        </span>
+                                    {% endif %}
+                                    <br><small class="text-muted">{{ equipo.garantia_hasta|date:"d/m/Y" }}</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ equipo.fecha_registro|date:"d/m/Y" }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-ver" data-id="{{ equipo.id }}" title="Ver">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-warning btn-editar" data-id="{{ equipo.id }}" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-eliminar" data-id="{{ equipo.id }}" data-nombre="{{ equipo.nombre }}" data-serie="{{ equipo.numero_serie }}" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-5">
+                                <i class="fas fa-inbox fa-3x mb-3"></i><br>
+                                <h5>No hay equipos registrados</h5>
+                                <p>Comienza agregando tu primer equipo al inventario</p>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#agregarEquipoModal">
+                                    <i class="fas fa-plus"></i> Agregar Equipo
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para agregar equipo -->
+    <div class="modal fade" id="agregarEquipoModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus text-primary"></i> Agregar Nuevo Equipo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formAgregarEquipo">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nombre del Equipo</label>
+                                <input type="text" class="form-control" name="nombre" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tipo</label>
+                                <input list="tiposList" class="form-control" name="tipo" id="tipoInput" placeholder="Seleccionar o escribir tipo personalizado" required>
+                                <datalist id="tiposList">
+                                    <option value="Compresora">
+                                    <option value="Motor">
+                                    <option value="Bomba">
+
+                                </datalist>
+                                <small class="form-text text-muted">Puedes seleccionar de la lista o escribir un tipo personalizado</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Número de Serie</label>
+                                <input type="text" class="form-control" name="numero_serie" 
+                                       placeholder="Dejar vacío para generar automáticamente">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Área</label>
+                                <select class="form-select" name="area" required>
+                                    <option value="">Seleccionar área</option>
+                                    {% for area in areas %}
+                                    <option value="{{ area.id }}">{{ area.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" name="estado" required>
+                                    <option value="">Seleccionar estado</option>
+                                    {% for estado in estados %}
+                                    <option value="{{ estado.id }}">{{ estado.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Marca</label>
+                                <input type="text" class="form-control" name="marca" placeholder="Marca del equipo">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Modelo</label>
+                                <input type="text" class="form-control" name="modelo" placeholder="Modelo del equipo">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Precio</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" name="precio" step="0.01" min="0" placeholder="0.00">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Proveedor</label>
+                                <input type="text" class="form-control" name="proveedor" placeholder="Proveedor del equipo">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Fecha de Compra</label>
+                                <input type="date" class="form-control" name="fecha_compra">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Garantía Hasta</label>
+                                <input type="date" class="form-control" name="garantia_hasta">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Observación</label>
+                            <textarea class="form-control" name="observacion" rows="3" placeholder="Observaciones adicionales sobre el equipo"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="guardarEquipo">
+                        <i class="fas fa-save"></i> Guardar Equipo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar equipo -->
+    <div class="modal fade" id="editarEquipoModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit text-warning"></i> Editar Equipo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formEditarEquipo">
+                        <input type="hidden" id="editEquipoId" name="equipo_id">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nombre del Equipo</label>
+                                <input type="text" class="form-control" name="nombre" id="editNombre" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tipo</label>
+                                <input list="editTiposList" class="form-control" name="tipo" id="editTipo" placeholder="Seleccionar o escribir tipo personalizado" required>
+                                <datalist id="editTiposList">
+                                    <option value="Compresora">
+                                    <option value="Motor">
+                                    <option value="Bomba">
+                                    <option value="Generador">
+                                    <option value="Aire Acondicionado">
+                                    <option value="Caldera">
+                                    <option value="Ventilador">
+                                    <option value="Transformador">
+                                    <option value="UPS">
+                                    <option value="Servidor">
+                                    <option value="Impresora">
+                                    <option value="Scanner">
+                                    <option value="Router">
+                                    <option value="Switch">
+                                    <option value="Otro">
+                                </datalist>
+                                <small class="form-text text-muted">Puedes seleccionar de la lista o escribir un tipo personalizado</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Número de Serie</label>
+                                <input type="text" class="form-control" name="numero_serie" id="editNumeroSerie">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Área</label>
+                                <select class="form-select" name="area" id="editArea" required>
+                                    <option value="">Seleccionar área</option>
+                                    {% for area in areas %}
+                                    <option value="{{ area.id }}">{{ area.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" name="estado" id="editEstado" required>
+                                    <option value="">Seleccionar estado</option>
+                                    {% for estado in estados %}
+                                    <option value="{{ estado.id }}">{{ estado.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Marca</label>
+                                <input type="text" class="form-control" name="marca" id="editMarca" placeholder="Marca del equipo">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Modelo</label>
+                                <input type="text" class="form-control" name="modelo" id="editModelo" placeholder="Modelo del equipo">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Precio</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" name="precio" id="editPrecio" step="0.01" min="0" placeholder="0.00">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Proveedor</label>
+                                <input type="text" class="form-control" name="proveedor" id="editProveedor" placeholder="Proveedor del equipo">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Fecha de Compra</label>
+                                <input type="date" class="form-control" name="fecha_compra" id="editFechaCompra">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Garantía Hasta</label>
+                                <input type="date" class="form-control" name="garantia_hasta" id="editGarantiaHasta">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Observación</label>
+                            <textarea class="form-control" name="observacion" id="editObservacion" rows="3" placeholder="Observaciones adicionales sobre el equipo"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-warning" id="guardarEdicion">
+                        <i class="fas fa-save"></i> Actualizar Equipo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para confirmar eliminación -->
+    <div class="modal fade" id="eliminarEquipoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle text-danger"></i> Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Estás seguro de que deseas eliminar el equipo?</p>
+                    <div class="alert alert-warning">
+                        <strong id="eliminarNombre"></strong> (<code id="eliminarSerie"></code>)
+                    </div>
+                    <p class="text-danger"><strong>Esta acción no se puede deshacer.</strong></p>
+                    <input type="hidden" id="eliminarEquipoId">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmarEliminacion">
+                        <i class="fas fa-trash"></i> Eliminar Equipo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para ver detalles del equipo -->
+    <div class="modal fade" id="verEquipoModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-eye text-primary"></i> Detalles del Equipo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Nombre:</strong> <span id="verNombre"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Tipo:</strong> <span id="verTipo"></span>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Número de Serie:</strong> <code id="verNumeroSerie"></code>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Área:</strong> <span id="verArea"></span>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Estado:</strong> <span id="verEstado"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Marca:</strong> <span id="verMarca"></span>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Modelo:</strong> <span id="verModelo"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Precio:</strong> <span id="verPrecio"></span>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Proveedor:</strong> <span id="verProveedor"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Fecha de Compra:</strong> <span id="verFechaCompra"></span>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Garantía Hasta:</strong> <span id="verGarantiaHasta"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Estado de Garantía:</strong> <span id="verEstadoGarantia"></span>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-12">
+                            <strong>Observación:</strong><br>
+                            <span id="verObservacion" class="text-muted"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para importar Excel -->
+    <div class="modal fade" id="importarExcelModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="fas fa-file-excel"></i> Importar Equipos desde Excel</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> Instrucciones:</h6>
+                        <ul class="mb-0">
+                            <li>Descarga la <strong>plantilla Excel</strong> haciendo clic en el botón "Plantilla"</li>
+                            <li>Completa los datos en el archivo descargado</li>
+                            <li>Las columnas <strong>Nombre, Tipo, Area y Estado</strong> son obligatorias</li>
+                            <li>Las áreas y estados se crearán automáticamente si no existen</li>
+                            <li>Formatos soportados: .xlsx, .xls, .csv</li>
+                        </ul>
+                    </div>
+                    
+                    <form id="importarExcelForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="archivoExcel" class="form-label">
+                                <i class="fas fa-upload"></i> Seleccionar archivo Excel
+                            </label>
+                            <input type="file" class="form-control" id="archivoExcel" name="archivo" 
+                                   accept=".xlsx,.xls,.csv" required>
+                            <div class="form-text">
+                                Archivos permitidos: Excel (.xlsx, .xls) o CSV (.csv)
+                            </div>
+                        </div>
+                        
+                        <div id="resultadoImportacion" class="mt-3" style="display: none;">
+                            <div class="alert" role="alert">
+                                <div id="mensajeResultado"></div>
+                                <div id="erroresDetalle" style="display: none;">
+                                    <hr>
+                                    <h6>Errores encontrados:</h6>
+                                    <ul id="listaErrores"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-outline-info" id="descargarPlantillaModalBtn">
+                        <i class="fas fa-download"></i> Descargar Plantilla
+                    </button>
+                    <button type="button" class="btn btn-info" id="procesarImportacionBtn">
+                        <i class="fas fa-upload"></i> Importar Datos
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Verificar si la tabla tiene datos antes de inicializar DataTable
+        if ($('#equiposTable tbody tr').length > 0 && !$('#equiposTable tbody tr').first().find('td[colspan]').length) {
+            // Inicializar DataTable solo si hay datos
+            var table = $('#equiposTable').DataTable({
+                responsive: true,
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json'
+                },
+                pageLength: 25,
+                order: [[0, 'asc']],
+                columnDefs: [
+                    {
+                        targets: -1, // Columna de acciones
+                        orderable: false,
+                        width: "120px"
+                    },
+                    {
+                        targets: [2], // N° Serie
+                        width: "100px"
+                    },
+                    {
+                        targets: [3], // Marca/Modelo
+                        width: "150px"
+                    },
+                    {
+                        targets: [4], // Precio
+                        width: "100px",
+                        className: "text-end"
+                    },
+                    {
+                        targets: [6], // Estado
+                        width: "100px"
+                    },
+                    {
+                        targets: [7], // Garantía
+                        width: "120px",
+                        className: "text-center"
+                    }
+                ]
+            });
+
+            // Filtros personalizados
+            $('#filtroArea').on('change', function() {
+                table.column(3).search($(this).val()).draw();
+            });
+
+            $('#filtroEstado').on('change', function() {
+                table.column(4).search($(this).val()).draw();
+            });
+
+            $('#filtroTipo').on('change', function() {
+                table.column(1).search($(this).val()).draw();
+            });
+
+            // Limpiar filtros
+            $('#limpiarFiltros').on('click', function() {
+                $('#filtroArea, #filtroEstado, #filtroTipo').val('');
+                table.search('').columns().search('').draw();
+            });
+        } else {
+            // Si no hay datos, deshabilitar filtros
+            $('#filtroArea, #filtroEstado, #filtroTipo, #limpiarFiltros').prop('disabled', true);
+        }
+
+        // Guardar equipo
+        $('#guardarEquipo').on('click', function() {
+            var form = $('#formAgregarEquipo');
+            var formData = {
+                nombre: form.find('input[name="nombre"]').val(),
+                tipo: form.find('input[name="tipo"]').val(),
+                numero_serie: form.find('input[name="numero_serie"]').val(),
+                area: form.find('select[name="area"]').val(),
+                estado: form.find('select[name="estado"]').val(),
+                marca: form.find('input[name="marca"]').val(),
+                modelo: form.find('input[name="modelo"]').val(),
+                precio: form.find('input[name="precio"]').val(),
+                proveedor: form.find('input[name="proveedor"]').val(),
+                fecha_compra: form.find('input[name="fecha_compra"]').val(),
+                garantia_hasta: form.find('input[name="garantia_hasta"]').val(),
+                observacion: form.find('textarea[name="observacion"]').val()
+            };
+
+            // Validaciones básicas
+            if (!formData.nombre.trim()) {
+                alert('El nombre del equipo es requerido');
+                return;
+            }
+            if (!formData.tipo) {
+                alert('El tipo de equipo es requerido');
+                return;
+            }
+            if (!formData.area) {
+                alert('El área es requerida');
+                return;
+            }
+            if (!formData.estado) {
+                alert('El estado es requerido');
+                return;
+            }
+
+            // Deshabilitar botón mientras se envía
+            $('#guardarEquipo').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Guardando...');
+
+            // Enviar datos via AJAX
+            $.ajax({
+                url: '{% url "crear_equipo" %}',
+                type: 'POST',
+                data: JSON.stringify(formData),
+                contentType: 'application/json',
+                success: function(response) {
+                    if (response.success) {
+                        alert('Equipo creado exitosamente: ' + response.equipo.numero_serie);
+                        $('#agregarEquipoModal').modal('hide');
+                        location.reload(); // Recargar página para mostrar el nuevo equipo
+                    } else {
+                        alert('Error: ' + response.error);
+                    }
+                },
+                error: function(xhr) {
+                    var errorMsg = 'Error al crear el equipo';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMsg = xhr.responseJSON.error;
+                    }
+                    alert(errorMsg);
+                },
+                complete: function() {
+                    // Rehabilitar botón
+                    $('#guardarEquipo').prop('disabled', false).html('<i class="fas fa-save"></i> Guardar Equipo');
+                }
+            });
+        });
+
+        // Limpiar formulario cuando se cierre el modal
+        $('#agregarEquipoModal').on('hidden.bs.modal', function() {
+            $('#formAgregarEquipo')[0].reset();
+        });
+
+        // Ver detalles del equipo
+        $(document).on('click', '.btn-ver', function() {
+            var equipoId = $(this).data('id');
+            
+            $.get('{% url "obtener_equipo" 0 %}'.replace('0', equipoId))
+                .done(function(response) {
+                    if (response.success) {
+                        var equipo = response.equipo;
+                        $('#verNombre').text(equipo.nombre);
+                        $('#verTipo').text(getTipoDisplay(equipo.tipo));
+                        $('#verNumeroSerie').text(equipo.numero_serie);
+                        $('#verArea').text($('#editArea option[value="' + equipo.area + '"]').text());
+                        $('#verEstado').text($('#editEstado option[value="' + equipo.estado + '"]').text());
+                        $('#verMarca').text(equipo.marca || 'No especificado');
+                        $('#verModelo').text(equipo.modelo || 'No especificado');
+                        $('#verPrecio').text(equipo.precio ? '$' + parseFloat(equipo.precio).toLocaleString('es-CO', {minimumFractionDigits: 2}) : 'No especificado');
+                        $('#verProveedor').text(equipo.proveedor || 'No especificado');
+                        $('#verFechaCompra').text(equipo.fecha_compra ? new Date(equipo.fecha_compra).toLocaleDateString('es-CO') : 'No especificado');
+                        $('#verGarantiaHasta').text(equipo.garantia_hasta ? new Date(equipo.garantia_hasta).toLocaleDateString('es-CO') : 'No especificado');
+                        
+                        // Estado de garantía
+                        if (equipo.garantia_hasta) {
+                            var hoy = new Date();
+                            var garantia = new Date(equipo.garantia_hasta);
+                            var diasRestantes = Math.ceil((garantia - hoy) / (1000 * 60 * 60 * 24));
+                            
+                            if (diasRestantes > 0) {
+                                $('#verEstadoGarantia').html('<span class="badge bg-success">Vigente (' + diasRestantes + ' días)</span>');
+                            } else {
+                                $('#verEstadoGarantia').html('<span class="badge bg-danger">Vencida</span>');
+                            }
+                        } else {
+                            $('#verEstadoGarantia').html('<span class="badge bg-secondary">No especificado</span>');
+                        }
+                        
+                        $('#verObservacion').text(equipo.observacion || 'Sin observación');
+                        
+                        $('#verEquipoModal').modal('show');
+                    } else {
+                        alert('Error: ' + response.error);
+                    }
+                })
+                .fail(function() {
+                    alert('Error al cargar los detalles del equipo');
+                });
+        });
+
+        // Editar equipo
+        $(document).on('click', '.btn-editar', function() {
+            var equipoId = $(this).data('id');
+            
+            $.get('{% url "obtener_equipo" 0 %}'.replace('0', equipoId))
+                .done(function(response) {
+                    if (response.success) {
+                        var equipo = response.equipo;
+                        $('#editEquipoId').val(equipo.id);
+                        $('#editNombre').val(equipo.nombre);
+                        $('#editTipo').val(equipo.tipo);
+                        $('#editNumeroSerie').val(equipo.numero_serie);
+                        $('#editArea').val(equipo.area);
+                        $('#editEstado').val(equipo.estado);
+                        $('#editMarca').val(equipo.marca || '');
+                        $('#editModelo').val(equipo.modelo || '');
+                        $('#editPrecio').val(equipo.precio || '');
+                        $('#editProveedor').val(equipo.proveedor || '');
+                        $('#editFechaCompra').val(equipo.fecha_compra || '');
+                        $('#editGarantiaHasta').val(equipo.garantia_hasta || '');
+                        $('#editObservacion').val(equipo.observacion);
+                        
+                        $('#editarEquipoModal').modal('show');
+                    } else {
+                        alert('Error: ' + response.error);
+                    }
+                })
+                .fail(function() {
+                    alert('Error al cargar los datos del equipo');
+                });
+        });
+
+        // Guardar edición
+        $('#guardarEdicion').on('click', function() {
+            var form = $('#formEditarEquipo');
+            var equipoId = $('#editEquipoId').val();
+            var formData = {
+                nombre: $('#editNombre').val(),
+                tipo: $('#editTipo').val(),
+                numero_serie: $('#editNumeroSerie').val(),
+                area: $('#editArea').val(),
+                estado: $('#editEstado').val(),
+                marca: $('#editMarca').val(),
+                modelo: $('#editModelo').val(),
+                precio: $('#editPrecio').val(),
+                proveedor: $('#editProveedor').val(),
+                fecha_compra: $('#editFechaCompra').val(),
+                garantia_hasta: $('#editGarantiaHasta').val(),
+                observacion: $('#editObservacion').val()
+            };
+
+            // Validaciones básicas
+            if (!formData.nombre.trim()) {
+                alert('El nombre del equipo es requerido');
+                return;
+            }
+            if (!formData.tipo) {
+                alert('El tipo de equipo es requerido');
+                return;
+            }
+            if (!formData.area) {
+                alert('El área es requerida');
+                return;
+            }
+            if (!formData.estado) {
+                alert('El estado es requerido');
+                return;
+            }
+
+            // Deshabilitar botón mientras se envía
+            $('#guardarEdicion').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Actualizando...');
+
+            // Enviar datos via AJAX
+            $.ajax({
+                url: '{% url "editar_equipo" 0 %}'.replace('0', equipoId),
+                type: 'POST',
+                data: JSON.stringify(formData),
+                contentType: 'application/json',
+                success: function(response) {
+                    if (response.success) {
+                        alert('Equipo actualizado exitosamente');
+                        $('#editarEquipoModal').modal('hide');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + response.error);
+                    }
+                },
+                error: function(xhr) {
+                    var errorMsg = 'Error al actualizar el equipo';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMsg = xhr.responseJSON.error;
+                    }
+                    alert(errorMsg);
+                },
+                complete: function() {
+                    $('#guardarEdicion').prop('disabled', false).html('<i class="fas fa-save"></i> Actualizar Equipo');
+                }
+            });
+        });
+
+        // Eliminar equipo
+        $(document).on('click', '.btn-eliminar', function() {
+            var equipoId = $(this).data('id');
+            var nombre = $(this).data('nombre');
+            var serie = $(this).data('serie');
+            
+            $('#eliminarEquipoId').val(equipoId);
+            $('#eliminarNombre').text(nombre);
+            $('#eliminarSerie').text(serie);
+            
+            $('#eliminarEquipoModal').modal('show');
+        });
+
+        // Confirmar eliminación
+        $('#confirmarEliminacion').on('click', function() {
+            var equipoId = $('#eliminarEquipoId').val();
+
+            // Deshabilitar botón mientras se envía
+            $('#confirmarEliminacion').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Eliminando...');
+
+            $.ajax({
+                url: '{% url "eliminar_equipo" 0 %}'.replace('0', equipoId),
+                type: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        alert(response.message);
+                        $('#eliminarEquipoModal').modal('hide');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + response.error);
+                    }
+                },
+                error: function(xhr) {
+                    var errorMsg = 'Error al eliminar el equipo';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMsg = xhr.responseJSON.error;
+                    }
+                    alert(errorMsg);
+                },
+                complete: function() {
+                    $('#confirmarEliminacion').prop('disabled', false).html('<i class="fas fa-trash"></i> Eliminar Equipo');
+                }
+            });
+        });
+
+        // Exportar PDF
+        $('#exportarPdfBtn').on('click', function() {
+            // Obtener filtros actuales
+            var filtroArea = $('#filtroArea').val() || 'todas';
+            var filtroEstado = $('#filtroEstado').val() || 'todos';
+            var filtroTipo = $('#filtroTipo').val() || 'todos';
+            
+            // Construir URL con parámetros
+            var url = '{% url "exportar_equipos_pdf" %}' + 
+                      '?area=' + encodeURIComponent(filtroArea) +
+                      '&estado=' + encodeURIComponent(filtroEstado) +
+                      '&tipo=' + encodeURIComponent(filtroTipo);
+            
+            // Cambiar el botón temporalmente
+            var $btn = $(this);
+            var originalHtml = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Generando PDF...');
+            
+            // Crear enlace temporal para descarga
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = 'inventario_activos.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Restaurar botón después de un momento
+            setTimeout(function() {
+                $btn.prop('disabled', false).html(originalHtml);
+            }, 2000);
+        });
+
+        // Descargar plantilla Excel
+        $('#descargarPlantillaBtn, #descargarPlantillaModalBtn').on('click', function() {
+            var $btn = $(this);
+            var originalHtml = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Descargando...');
+            
+            var link = document.createElement('a');
+            link.href = '{% url "descargar_plantilla_excel" %}';
+            link.download = 'plantilla_importacion_equipos.xlsx';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            setTimeout(function() {
+                $btn.prop('disabled', false).html(originalHtml);
+            }, 2000);
+        });
+
+        // Procesar importación Excel
+        $('#procesarImportacionBtn').on('click', function() {
+            var archivo = $('#archivoExcel')[0].files[0];
+            
+            if (!archivo) {
+                alert('Por favor selecciona un archivo Excel');
+                return;
+            }
+            
+            var $btn = $(this);
+            var originalHtml = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Procesando...');
+            
+            var formData = new FormData();
+            formData.append('archivo', archivo);
+            
+            $.ajax({
+                url: '{% url "importar_equipos_excel" %}',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        // Mostrar resultado exitoso
+                        $('#mensajeResultado').html(
+                            '<i class="fas fa-check-circle text-success"></i> ' + response.message
+                        );
+                        $('#resultadoImportacion .alert').removeClass('alert-danger').addClass('alert-success');
+                        
+                        // Mostrar errores si los hay
+                        if (response.errores && response.errores.length > 0) {
+                            var erroresHtml = '';
+                            response.errores.forEach(function(error) {
+                                erroresHtml += '<li>' + error + '</li>';
+                            });
+                            $('#listaErrores').html(erroresHtml);
+                            $('#erroresDetalle').show();
+                        } else {
+                            $('#erroresDetalle').hide();
+                        }
+                        
+                        $('#resultadoImportacion').show();
+                        
+                        // Recargar página después de un momento para mostrar nuevos equipos
+                        setTimeout(function() {
+                            location.reload();
+                        }, 3000);
+                        
+                    } else {
+                        $('#mensajeResultado').html(
+                            '<i class="fas fa-exclamation-triangle text-danger"></i> ' + response.error
+                        );
+                        $('#resultadoImportacion .alert').removeClass('alert-success').addClass('alert-danger');
+                        $('#erroresDetalle').hide();
+                        $('#resultadoImportacion').show();
+                    }
+                },
+                error: function(xhr) {
+                    var errorMsg = 'Error al procesar el archivo';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMsg = xhr.responseJSON.error;
+                    }
+                    
+                    $('#mensajeResultado').html(
+                        '<i class="fas fa-exclamation-triangle text-danger"></i> ' + errorMsg
+                    );
+                    $('#resultadoImportacion .alert').removeClass('alert-success').addClass('alert-danger');
+                    $('#erroresDetalle').hide();
+                    $('#resultadoImportacion').show();
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).html(originalHtml);
+                }
+            });
+        });
+
+        // Resetear modal cuando se cierra
+        $('#importarExcelModal').on('hidden.bs.modal', function() {
+            $('#importarExcelForm')[0].reset();
+            $('#resultadoImportacion').hide();
+            $('#erroresDetalle').hide();
+        });
+
+        // Función auxiliar para mostrar el tipo
+        function getTipoDisplay(tipo) {
+            // Ahora simplemente devolvemos el tipo tal como está
+            return tipo || 'No especificado';
+        }
+    });
+</script>
+{% endblock %} 

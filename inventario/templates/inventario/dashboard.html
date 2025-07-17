@@ -1,0 +1,207 @@
+{% extends 'inventario/base.html' %}
+
+{% block title %}Dashboard - Inventario Pro{% endblock %}
+{% block page_title %}Dashboard General{% endblock %}
+
+{% block content %}
+    <!-- Tarjetas de estadísticas -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card success">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ total_equipos }}</div>
+                        <div>Total Equipos</div>
+                    </div>
+                    <i class="fas fa-boxes fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+        {% for estado in total_por_estado %}
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card {% if estado.nombre == 'Operativo' %}success{% elif estado.nombre == 'Mantenimiento' %}warning{% else %}danger{% endif %}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ estado.total }}</div>
+                        <div>{{ estado.nombre }}</div>
+                    </div>
+                    <i class="fas {% if estado.nombre == 'Operativo' %}fa-check-circle{% elif estado.nombre == 'Mantenimiento' %}fa-tools{% else %}fa-exclamation-triangle{% endif %} fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="row">
+        <!-- Gráfico de equipos por estado -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie text-primary"></i> Distribución por Estado</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="estadosChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de equipos por área -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar text-primary"></i> Equipos por Área</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="areasChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Áreas top -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-building text-primary"></i> Áreas con más Equipos</h5>
+                    <a href="{% url 'equipos_lista' %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-eye"></i> Ver todos
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Área</th>
+                                    <th>Total Equipos</th>
+                                    <th>Progreso</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for area in areas %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-building text-muted me-2"></i>
+                                        {{ area.nombre }}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ area.total_equipos }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-primary" role="progressbar" 
+                                                 style="width: {% widthratio area.total_equipos total_equipos 100 %}%"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">
+                                        <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                                        No hay áreas registradas
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Acciones rápidas -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-rocket text-primary"></i> Acciones Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'equipos_lista' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-plus"></i> Agregar Equipo
+                        </a>
+                        <a href="/admin/inventario/area/" class="btn btn-outline-secondary">
+                            <i class="fas fa-building"></i> Gestionar Áreas
+                        </a>
+                        <a href="/admin/inventario/estado/" class="btn btn-outline-info">
+                            <i class="fas fa-cog"></i> Gestionar Estados
+                        </a>
+                        <a href="#" class="btn btn-outline-success">
+                            <i class="fas fa-file-excel"></i> Exportar Excel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Gráfico de distribución por estado
+    const estadosCtx = document.getElementById('estadosChart').getContext('2d');
+    const estadosData = {
+        labels: [{% for estado in total_por_estado %}'{{ estado.nombre }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            data: [{% for estado in total_por_estado %}{{ estado.total }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            backgroundColor: [
+                '#27ae60',
+                '#f39c12', 
+                '#e74c3c',
+                '#3498db'
+            ],
+            borderWidth: 0
+        }]
+    };
+
+    new Chart(estadosCtx, {
+        type: 'doughnut',
+        data: estadosData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+
+    // Gráfico de equipos por área
+    const areasCtx = document.getElementById('areasChart').getContext('2d');
+    const areasData = {
+        labels: [{% for area in areas %}'{{ area.nombre }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Equipos',
+            data: [{% for area in areas %}{{ area.total_equipos }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            backgroundColor: '#3498db',
+            borderColor: '#2980b9',
+            borderWidth: 1
+        }]
+    };
+
+    new Chart(areasCtx, {
+        type: 'bar',
+        data: areasData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+</script>
+{% endblock %} 

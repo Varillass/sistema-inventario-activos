@@ -1,0 +1,154 @@
+[
+{
+  "model": "inventario.area",
+  "pk": 1,
+  "fields": {
+    "nombre": "Almacen",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.area",
+  "pk": 2,
+  "fields": {
+    "nombre": "Reparacion",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.area",
+  "pk": 3,
+  "fields": {
+    "nombre": "Oficina",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.area",
+  "pk": 4,
+  "fields": {
+    "nombre": "Operaciones",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.area",
+  "pk": 5,
+  "fields": {
+    "nombre": "Administración",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.area",
+  "pk": 6,
+  "fields": {
+    "nombre": "Producción",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.area",
+  "pk": 7,
+  "fields": {
+    "nombre": "Mantenimiento",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.area",
+  "pk": 8,
+  "fields": {
+    "nombre": "Calidad",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.area",
+  "pk": 9,
+  "fields": {
+    "nombre": "Recursos Humanos",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.area",
+  "pk": 10,
+  "fields": {
+    "nombre": "Ventas",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.area",
+  "pk": 11,
+  "fields": {
+    "nombre": "Compras",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.area",
+  "pk": 12,
+  "fields": {
+    "nombre": "Sistemas",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.estado",
+  "pk": 1,
+  "fields": {
+    "nombre": "Operativo",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.estado",
+  "pk": 2,
+  "fields": {
+    "nombre": "En Mantenimiento",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.estado",
+  "pk": 3,
+  "fields": {
+    "nombre": "Inoperativo",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.estado",
+  "pk": 4,
+  "fields": {
+    "nombre": "Descontinuado",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.estado",
+  "pk": 5,
+  "fields": {
+    "nombre": "Fuera de Servicio",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.estado",
+  "pk": 6,
+  "fields": {
+    "nombre": "En Reparación",
+    "descripcion": ""
+  }
+},
+{
+  "model": "inventario.estado",
+  "pk": 7,
+  "fields": {
+    "nombre": "Dado de Baja",
+    "descripcion": ""
+  }
+}
+]
