@@ -5,7 +5,7 @@ from django.views.decorators.http import require_http_methods
 import json
 from .models import Equipo, Estado, Area
 from django.db.models import Count
-from .utils import generar_pdf_equipos  # , procesar_importacion_excel, crear_equipos_masivo, generar_plantilla_excel
+# from .utils import generar_pdf_equipos  # Comentado temporalmente para evitar errores de reportlab
 
 # Create your views here.
 
@@ -224,117 +224,29 @@ def eliminar_equipo(request, equipo_id):
 
 def exportar_equipos_pdf(request):
     """
-    Vista para exportar equipos a PDF con filtros aplicados
+    Vista para exportar equipos a PDF - TEMPORALMENTE DESHABILITADA
     """
-    try:
-        # Obtener filtros de la URL
-        filtro_area = request.GET.get('area', 'todas')
-        filtro_estado = request.GET.get('estado', 'todos')
-        filtro_tipo = request.GET.get('tipo', 'todos')
-        
-        # Generar PDF
-        buffer = generar_pdf_equipos(filtro_area, filtro_estado, filtro_tipo)
-        
-        # Configurar respuesta HTTP
-        response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
-        
-        # Nombre del archivo
-        from datetime import datetime
-        fecha_actual = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"inventario_activos_{fecha_actual}.pdf"
-        
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        response['Content-Length'] = len(buffer.getvalue())
-        
-        return response
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Error al generar el PDF: {str(e)}'
-        }, status=500)
+    return JsonResponse({
+        'success': False,
+        'error': 'La exportación PDF está temporalmente deshabilitada. Funcionalidad disponible próximamente.'
+    }, status=503)
 
 def descargar_plantilla_excel(request):
     """
-    Vista para descargar plantilla Excel de importación
+    Vista para descargar plantilla Excel - TEMPORALMENTE DESHABILITADA
     """
-    try:
-        # buffer = generar_plantilla_excel() # This line was commented out in the original file
-        # The original file had this line commented out, so it's commented out here.
-        # If the user wants to uncomment it, they should provide a new edit.
-        # For now, we'll just return a placeholder response.
-        response = HttpResponse(
-            b"Placeholder for Excel template", # Placeholder content
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        
-        response['Content-Disposition'] = 'attachment; filename="plantilla_importacion_equipos.xlsx"'
-        response['Content-Length'] = len(b"Placeholder for Excel template") # Placeholder length
-        
-        return response
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Error al generar la plantilla: {str(e)}'
-        }, status=500)
+    return JsonResponse({
+        'success': False,
+        'error': 'La descarga de plantilla Excel está temporalmente deshabilitada. Funcionalidad disponible próximamente.'
+    }, status=503)
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def importar_equipos_excel(request):
     """
-    Vista para importar equipos desde archivo Excel
+    Vista para importar equipos desde Excel - TEMPORALMENTE DESHABILITADA
     """
-    try:
-        if 'archivo' not in request.FILES:
-            return JsonResponse({
-                'success': False,
-                'error': 'No se ha seleccionado ningún archivo'
-            }, status=400)
-        
-        archivo = request.FILES['archivo']
-        
-        # Procesar archivo
-        # exito, resultado, errores = procesar_importacion_excel(archivo) # This line was commented out in the original file
-        # The original file had this line commented out, so it's commented out here.
-        # If the user wants to uncomment it, they should provide a new edit.
-        # For now, we'll just return a placeholder response.
-        resultado = "Placeholder for Excel import processing" # Placeholder result
-        errores = [] # Placeholder errors
-        
-        if not resultado:
-            return JsonResponse({
-                'success': False,
-                'error': 'No se encontraron datos válidos para importar'
-            }, status=400)
-        
-        # Crear equipos en la base de datos
-        # equipos_creados, errores_creacion = crear_equipos_masivo(equipos_data) # This line was commented out in the original file
-        # The original file had this line commented out, so it's commented out here.
-        # If the user wants to uncomment it, they should provide a new edit.
-        # For now, we'll just return a placeholder response.
-        equipos_creados = [] # Placeholder created equipment
-        errores_creacion = [] # Placeholder creation errors
-        
-        # Combinar errores
-        todos_errores = errores + errores_creacion
-        
-        # Preparar respuesta
-        response_data = {
-            'success': True,
-            'equipos_creados': len(equipos_creados),
-            'total_procesados': len(resultado), # Placeholder total processed
-            'errores': todos_errores,
-            'message': f'Importación completada: {len(equipos_creados)} equipos creados exitosamente'
-        }
-        
-        if todos_errores:
-            response_data['message'] += f' con {len(todos_errores)} errores'
-        
-        return JsonResponse(response_data)
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Error al procesar la importación: {str(e)}'
-        }, status=500)
+    return JsonResponse({
+        'success': False,
+        'error': 'La importación de Excel está temporalmente deshabilitada. Funcionalidad disponible próximamente.'
+    }, status=503)
