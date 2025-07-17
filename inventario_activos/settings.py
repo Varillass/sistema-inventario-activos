@@ -13,10 +13,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 import dj_database_url
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,16 +27,13 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-ne71ivd#9i7o#bu!k83kq
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']  # Permitir todos los hosts para simplificar
 
 # Configuración para Render
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+    ALLOWED_HOSTS = [RENDER_EXTERNAL_HOSTNAME, 'localhost', '127.0.0.1']
     DEBUG = False
-
-# También permitir localhost para desarrollo
-ALLOWED_HOSTS.extend(['localhost', '127.0.0.1'])
 
 
 # Application definition
@@ -89,26 +82,24 @@ WSGI_APPLICATION = 'inventario_activos.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Configuración de base de datos para desarrollo y producción
-if 'DATABASE_URL' in os.environ:
+# Configuración de base de datos simplificada
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
     # Configuración para Render (PostgreSQL)
     DATABASES = {
-        'default': dj_database_url.parse(os.environ.get('DATABASE_URL'))
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
 else:
-    # Configuración para desarrollo local (MySQL)
+    # Configuración para desarrollo local (SQLite por simplicidad)
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'inventario_activos',
-            'USER': 'greenton',
-            'PASSWORD': 'zxasqw12',
-            'HOST': '100.97.132.73',
-            'PORT': '3306',
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            },
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 

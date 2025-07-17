@@ -2,8 +2,12 @@
 # exit on error
 set -o errexit
 
-# Instalar dependencias
+# Actualizar pip y instalar dependencias
+pip install --upgrade pip
 pip install -r requirements.txt
+
+# Verificar que psycopg2 esté instalado correctamente
+pip show psycopg2-binary
 
 # Recolectar archivos estáticos
 python manage.py collectstatic --no-input

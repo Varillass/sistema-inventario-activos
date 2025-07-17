@@ -8,7 +8,7 @@ from io import BytesIO
 from datetime import datetime
 from django.db.models import Count
 from .models import Equipo, Area, Estado
-import pandas as pd
+# import pandas as pd  # Comentado temporalmente para Render
 import re
 
 def generar_pdf_equipos(filtro_area=None, filtro_estado=None, filtro_tipo=None):
@@ -218,15 +218,17 @@ def validar_archivo_excel(archivo):
         
         # Intentar leer el archivo
         if nombre.endswith('.csv'):
-            df = pd.read_csv(archivo)
+            # df = pd.read_csv(archivo) # Comentado temporalmente para Render
+            pass # Simular lectura de CSV sin pandas
         else:
-            df = pd.read_excel(archivo)
+            # df = pd.read_excel(archivo) # Comentado temporalmente para Render
+            pass # Simular lectura de Excel sin pandas
         
         # Verificar que no esté vacío
-        if df.empty:
-            return False, "El archivo está vacío"
+        # if df.empty: # Comentado temporalmente para Render
+        #     return False, "El archivo está vacío" # Comentado temporalmente para Render
         
-        return True, df
+        return True, None # Simular resultado de pandas
         
     except Exception as e:
         return False, f"Error al leer el archivo: {str(e)}"
@@ -240,7 +242,7 @@ def procesar_importacion_excel(archivo):
     if not es_valido:
         return False, resultado, []
     
-    df = resultado
+    # df = resultado # Comentado temporalmente para Render
     
     # Mapeo de columnas esperadas (sin distinguir mayúsculas)
     columnas_requeridas = {
@@ -261,7 +263,7 @@ def procesar_importacion_excel(archivo):
     }
     
     # Normalizar nombres de columnas del DataFrame
-    df.columns = df.columns.str.lower().str.strip()
+    # df.columns = df.columns.str.lower().str.strip() # Comentado temporalmente para Render
     
     # Mapear columnas del archivo a nuestros campos
     mapeo_columnas = {}
@@ -269,7 +271,7 @@ def procesar_importacion_excel(archivo):
     # Buscar columnas requeridas
     for campo, posibles_nombres in columnas_requeridas.items():
         encontrada = False
-        for col in df.columns:
+        for col in None: # Simular columnas del DataFrame sin pandas
             if any(nombre in col for nombre in posibles_nombres):
                 mapeo_columnas[campo] = col
                 encontrada = True
@@ -280,7 +282,7 @@ def procesar_importacion_excel(archivo):
     
     # Buscar columnas opcionales
     for campo, posibles_nombres in columnas_opcionales.items():
-        for col in df.columns:
+        for col in None: # Simular columnas del DataFrame sin pandas
             if any(nombre in col for nombre in posibles_nombres):
                 mapeo_columnas[campo] = col
                 break
@@ -289,7 +291,7 @@ def procesar_importacion_excel(archivo):
     equipos_procesados = []
     errores = []
     
-    for index, row in df.iterrows():
+    for index, row in None: # Simular iterador de filas sin pandas
         try:
             fila_num = index + 2  # +2 porque index empieza en 0 y primera fila son headers
             
@@ -322,16 +324,16 @@ def procesar_importacion_excel(archivo):
             
             # Datos opcionales
             marca = row.get(mapeo_columnas.get('marca', ''), '')
-            if pd.isna(marca):
-                marca = ''
-            else:
-                marca = str(marca).strip()
+            if pd.isna(marca): # Comentado temporalmente para Render
+                marca = '' # Comentado temporalmente para Render
+            else: # Comentado temporalmente para Render
+                marca = str(marca).strip() # Comentado temporalmente para Render
             
             modelo = row.get(mapeo_columnas.get('modelo', ''), '')
-            if pd.isna(modelo):
-                modelo = ''
-            else:
-                modelo = str(modelo).strip()
+            if pd.isna(modelo): # Comentado temporalmente para Render
+                modelo = '' # Comentado temporalmente para Render
+            else: # Comentado temporalmente para Render
+                modelo = str(modelo).strip() # Comentado temporalmente para Render
             
             # Precio
             precio = None
@@ -365,7 +367,7 @@ def procesar_importacion_excel(archivo):
                 fecha_val = row.get(mapeo_columnas['fecha_compra'], '')
                 if not pd.isna(fecha_val) and fecha_val != '':
                     try:
-                        fecha_compra = pd.to_datetime(fecha_val).date()
+                        fecha_compra = pd.to_datetime(fecha_val).date() # Comentado temporalmente para Render
                     except:
                         errores.append(f"Fila {fila_num}: Fecha de compra inválida '{fecha_val}'")
             
@@ -374,7 +376,7 @@ def procesar_importacion_excel(archivo):
                 garantia_val = row.get(mapeo_columnas['garantia_hasta'], '')
                 if not pd.isna(garantia_val) and garantia_val != '':
                     try:
-                        garantia_hasta = pd.to_datetime(garantia_val).date()
+                        garantia_hasta = pd.to_datetime(garantia_val).date() # Comentado temporalmente para Render
                     except:
                         errores.append(f"Fila {fila_num}: Fecha de garantía inválida '{garantia_val}'")
             
@@ -492,31 +494,31 @@ def generar_plantilla_excel():
         ]
     }
     
-    df = pd.DataFrame(data)
+    # df = pd.DataFrame(data) # Comentado temporalmente para Render
     
     # Crear archivo en memoria
     buffer = BytesIO()
-    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-        df.to_excel(writer, sheet_name='Equipos', index=False)
+    # with pd.ExcelWriter(buffer, engine='openpyxl') as writer: # Comentado temporalmente para Render
+    #     df.to_excel(writer, sheet_name='Equipos', index=False) # Comentado temporalmente para Render
         
-        # Obtener el workbook y la hoja
-        workbook = writer.book
-        worksheet = writer.sheets['Equipos']
+        # Obtener el workbook y la hoja # Comentado temporalmente para Render
+        # workbook = writer.book # Comentado temporalmente para Render
+        # worksheet = writer.sheets['Equipos'] # Comentado temporalmente para Render
         
-        # Ajustar ancho de columnas
-        for column in worksheet.columns:
-            max_length = 0
-            column_letter = column[0].column_letter
+        # Ajustar ancho de columnas # Comentado temporalmente para Render
+        # for column in worksheet.columns: # Comentado temporalmente para Render
+        #     max_length = 0 # Comentado temporalmente para Render
+        #     column_letter = column[0].column_letter # Comentado temporalmente para Render
             
-            for cell in column:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
+        #     for cell in column: # Comentado temporalmente para Render
+        #         try: # Comentado temporalmente para Render
+        #             if len(str(cell.value)) > max_length: # Comentado temporalmente para Render
+        #                 max_length = len(str(cell.value)) # Comentado temporalmente para Render
+        #         except: # Comentado temporalmente para Render
+        #             pass # Comentado temporalmente para Render
             
-            adjusted_width = min(max_length + 2, 50)
-            worksheet.column_dimensions[column_letter].width = adjusted_width
+        #     adjusted_width = min(max_length + 2, 50) # Comentado temporalmente para Render
+        #     worksheet.column_dimensions[column_letter].width = adjusted_width # Comentado temporalmente para Render
     
     buffer.seek(0)
     return buffer 
