@@ -143,4 +143,10 @@ media/
 
 # OS
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Archivos de despliegue
+*.zip
+*.tar.gz
+*.rar
+*deploy*
