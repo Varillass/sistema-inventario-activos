@@ -88,7 +88,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'inventario_activos',
-        'USER': 'greenton',
+        'USER': 'render',
         'PASSWORD': 'zxasqw12',
         'HOST': '100.97.132.73',
         'PORT': '3306',
