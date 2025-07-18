@@ -87,7 +87,7 @@ WSGI_APPLICATION = 'inventario_activos.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'inventario_ti',
+        'NAME': 'inventario_activos',
         'USER': 'greenton',
         'PASSWORD': 'zxasqw12',
         'HOST': '100.97.132.73',
