@@ -555,7 +555,14 @@ def procesar_importacion_excel(archivo):
                 equipos_creados += 1
                 
             except Exception as e:
-                errores.append(f"Fila {row_num}: Error - {str(e)}")
+                # Error más específico
+                error_msg = str(e)
+                if "DoesNotExist" in error_msg:
+                    errores.append(f"Fila {row_num}: Error de referencia - verifica que los datos existan")
+                elif "ValidationError" in error_msg:
+                    errores.append(f"Fila {row_num}: Error de validación - verifica el formato de los datos")
+                else:
+                    errores.append(f"Fila {row_num}: Error - {error_msg}")
                 continue
         
         return equipos_creados, errores

@@ -436,9 +436,10 @@ def importar_equipos_excel(request):
         
         # Preparar respuesta
         if equipos_creados > 0:
-            mensaje = f'Se importaron {equipos_creados} equipos exitosamente'
+            # Si se crearon equipos, es un éxito (aunque haya errores)
+            mensaje = f'✅ Se importaron {equipos_creados} equipos exitosamente'
             if errores:
-                mensaje += f'. Se encontraron {len(errores)} errores'
+                mensaje += f'\n⚠️ Se encontraron {len(errores)} errores en algunas filas'
             
             return JsonResponse({
                 'success': True,
@@ -447,9 +448,10 @@ def importar_equipos_excel(request):
                 'errores': errores
             })
         else:
+            # Solo error si no se creó ningún equipo
             return JsonResponse({
                 'success': False,
-                'error': 'No se pudo importar ningún equipo. Verifica el formato del archivo.',
+                'error': '❌ No se pudo importar ningún equipo. Verifica el formato del archivo.',
                 'errores': errores
             }, status=400)
         
