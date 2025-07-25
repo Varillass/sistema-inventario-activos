@@ -337,13 +337,33 @@ def validar_archivo_excel(archivo):
         if ws.max_row < 2:
             return False, "El archivo no contiene datos"
         
-        # Verificar columnas requeridas
-        required_columns = ['Nombre', 'Tipo', 'Área', 'Estado']
-        headers = [ws.cell(row=1, column=i).value for i in range(1, 13)]
+        # Obtener headers y limpiarlos
+        headers = []
+        for cell in ws[1]:
+            header_value = str(cell.value).strip() if cell.value else ''
+            # Limpiar asteriscos y caracteres especiales
+            header_value = header_value.replace('*', '').replace('(', '').replace(')', '').strip()
+            headers.append(header_value)
         
-        for col in required_columns:
-            if col not in headers:
-                return False, f"Falta la columna requerida: {col}"
+        # Verificar columnas requeridas con mapeo flexible
+        columnas_requeridas = {
+            'nombre': ['nombre', 'name', 'equipo', 'equipment'],
+            'tipo': ['tipo', 'type', 'categoria', 'category'],
+            'area': ['area', 'área', 'departamento', 'department'],
+            'estado': ['estado', 'status', 'condition'],
+        }
+        
+        headers_lower = [h.lower() for h in headers]
+        
+        for campo, posibles_nombres in columnas_requeridas.items():
+            encontrada = False
+            for header_lower in headers_lower:
+                if any(nombre in header_lower for nombre in posibles_nombres):
+                    encontrada = True
+                    break
+            
+            if not encontrada:
+                return False, f"Falta la columna requerida: {campo}. Busque: {', '.join(posibles_nombres)}"
         
         return True, "Archivo válido"
         
@@ -359,10 +379,13 @@ def procesar_importacion_excel(archivo):
         wb = openpyxl.load_workbook(archivo)
         ws = wb.active
         
-        # Obtener encabezados de la primera fila
+        # Obtener encabezados de la primera fila y limpiarlos
         headers = []
         for cell in ws[1]:
-            headers.append(str(cell.value).strip() if cell.value else '')
+            header_value = str(cell.value).strip() if cell.value else ''
+            # Limpiar asteriscos y caracteres especiales
+            header_value = header_value.replace('*', '').replace('(', '').replace(')', '').strip()
+            headers.append(header_value)
         
         # Mapeo de columnas esperadas
         columnas_requeridas = {
@@ -379,7 +402,8 @@ def procesar_importacion_excel(archivo):
             'proveedor': ['proveedor', 'supplier', 'vendor'],
             'observacion': ['observacion', 'observación', 'descripcion', 'descripción', 'description', 'notes', 'notas'],
             'fecha_compra': ['fecha_compra', 'fecha compra', 'purchase_date', 'date_purchased', 'compra'],
-            'garantia_hasta': ['garantia_hasta', 'garantía hasta', 'warranty_until', 'garantia', 'garantía']
+            'garantia_hasta': ['garantia_hasta', 'garantía hasta', 'warranty_until', 'garantia', 'garantía'],
+            'numero_serie': ['numero_serie', 'número de serie', 'serial', 'serie', 'n° serie', 'n serie']
         }
         
         # Mapear columnas del archivo a nuestros campos
