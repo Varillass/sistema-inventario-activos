@@ -1,7 +1,7 @@
 from io import BytesIO
 from datetime import datetime
 from django.db.models import Count
-from .models import Equipo, Area, Estado
+from .models import Equipo, Area, Estado, Sede
 # import pandas as pd  # Comentado temporalmente para Render
 import re
 import openpyxl
@@ -296,7 +296,7 @@ def generar_plantilla_excel():
     headers = [
         'Nombre*', 'Tipo*', 'N° Serie', 'Marca', 'Modelo', 'Precio', 
         'Proveedor', 'Fecha Compra (DD/MM/YYYY)', 'Garantía Hasta (DD/MM/YYYY)', 
-        'Área*', 'Estado*', 'Observación'
+        'Sede*', 'Área*', 'Estado*', 'Observación'
     ]
     
     for col, header in enumerate(headers, 1):
@@ -307,14 +307,14 @@ def generar_plantilla_excel():
     # Ejemplos de datos
     ejemplo_data = [
         'Computadora Dell', 'Computadora', 'Com-00001', 'Dell', 'OptiPlex 7090', '1200.00',
-        'Dell Technologies', '15/01/2023', '15/01/2026', 'Administración', 'Operativo', 'Equipo principal'
+        'Dell Technologies', '15/01/2023', '15/01/2026', 'Sede Principal', 'Administración', 'Operativo', 'Equipo principal'
     ]
     
     for col, value in enumerate(ejemplo_data, 1):
         ws.cell(row=2, column=col, value=value)
     
     # Ajustar ancho de columnas
-    column_widths = [25, 15, 15, 15, 15, 12, 20, 25, 25, 15, 15, 30]
+    column_widths = [25, 15, 15, 15, 15, 12, 20, 25, 25, 15, 15, 15, 30]
     for col, width in enumerate(column_widths, 1):
         ws.column_dimensions[get_column_letter(col)].width = width
     
@@ -349,6 +349,7 @@ def validar_archivo_excel(archivo):
         columnas_requeridas = {
             'nombre': ['nombre', 'name', 'equipo', 'equipment'],
             'tipo': ['tipo', 'type', 'categoria', 'category'],
+            'sede': ['sede', 'location', 'ubicacion', 'site'],
             'area': ['area', 'área', 'departamento', 'department'],
             'estado': ['estado', 'status', 'condition'],
         }
@@ -391,6 +392,7 @@ def procesar_importacion_excel(archivo):
         columnas_requeridas = {
             'nombre': ['nombre', 'name', 'equipo', 'equipment'],
             'tipo': ['tipo', 'type', 'categoria', 'category'],
+            'sede': ['sede', 'location', 'ubicacion', 'site'],
             'area': ['area', 'área', 'departamento', 'department'],
             'estado': ['estado', 'status', 'condition'],
         }
@@ -437,6 +439,7 @@ def procesar_importacion_excel(archivo):
                 # Extraer datos requeridos
                 nombre = str(ws.cell(row=row_num, column=mapeo_columnas['nombre'] + 1).value or '').strip()
                 tipo = str(ws.cell(row=row_num, column=mapeo_columnas['tipo'] + 1).value or '').strip()
+                sede_nombre = str(ws.cell(row=row_num, column=mapeo_columnas['sede'] + 1).value or '').strip()
                 area_nombre = str(ws.cell(row=row_num, column=mapeo_columnas['area'] + 1).value or '').strip()
                 estado_nombre = str(ws.cell(row=row_num, column=mapeo_columnas['estado'] + 1).value or '').strip()
                 
@@ -448,6 +451,16 @@ def procesar_importacion_excel(archivo):
                 if not tipo or tipo == 'None':
                     errores.append(f"Fila {row_num}: Tipo es requerido")
                     continue
+                
+                if not sede_nombre or sede_nombre == 'None':
+                    errores.append(f"Fila {row_num}: Sede es requerida")
+                    continue
+                
+                # Buscar o crear sede
+                try:
+                    sede = Sede.objects.get(nombre__iexact=sede_nombre)
+                except Sede.DoesNotExist:
+                    sede = Sede.objects.create(nombre=sede_nombre)
                 
                 # Buscar o crear área
                 try:
@@ -534,6 +547,7 @@ def procesar_importacion_excel(archivo):
                     fecha_compra=fecha_compra,
                     garantia_hasta=garantia_hasta,
                     observacion=observacion,
+                    sede=sede,
                     area=area,
                     estado=estado
                 )
