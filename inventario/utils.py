@@ -1,9 +1,3 @@
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from io import BytesIO
 from datetime import datetime
 from django.db.models import Count
@@ -18,6 +12,14 @@ def generar_pdf_equipos(equipos):
     """
     Genera un PDF profesional con la lista de equipos
     """
+    # Importar reportlab solo cuando se necesita
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter, A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    
     # Crear buffer para el PDF
     buffer = BytesIO()
     
