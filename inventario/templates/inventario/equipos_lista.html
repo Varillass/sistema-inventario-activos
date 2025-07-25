@@ -91,6 +91,7 @@
                             <th>N° Serie</th>
                             <th>Marca/Modelo</th>
                             <th>Precio</th>
+                            <th>Sede</th>
                             <th>Área</th>
                             <th>Estado</th>
                             <th>Garantía</th>
@@ -128,6 +129,10 @@
                                 {% else %}
                                     <span class="text-muted">-</span>
                                 {% endif %}
+                            </td>
+                            <td>
+                                <i class="fas fa-map-marker-alt text-info me-1"></i>
+                                {{ equipo.sede.nombre|default:"No asignada" }}
                             </td>
                             <td>
                                 <i class="fas fa-building text-muted me-1"></i>
@@ -227,11 +232,31 @@
                                        placeholder="Dejar vacío para generar automáticamente">
                             </div>
                             <div class="col-md-6 mb-3">
+                                <label class="form-label">Sede</label>
+                                <select class="form-select" name="sede" required>
+                                    <option value="">Seleccionar sede</option>
+                                    {% for sede in sedes %}
+                                    <option value="{{ sede.id }}">{{ sede.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Área</label>
                                 <select class="form-select" name="area" required>
                                     <option value="">Seleccionar área</option>
                                     {% for area in areas %}
                                     <option value="{{ area.id }}">{{ area.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" name="estado" required>
+                                    <option value="">Seleccionar estado</option>
+                                    {% for estado in estados %}
+                                    <option value="{{ estado.id }}">{{ estado.nombre }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -341,11 +366,31 @@
                                 <input type="text" class="form-control" name="numero_serie" id="editNumeroSerie">
                             </div>
                             <div class="col-md-6 mb-3">
+                                <label class="form-label">Sede</label>
+                                <select class="form-select" name="sede" id="editSede" required>
+                                    <option value="">Seleccionar sede</option>
+                                    {% for sede in sedes %}
+                                    <option value="{{ sede.id }}">{{ sede.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Área</label>
                                 <select class="form-select" name="area" id="editArea" required>
                                     <option value="">Seleccionar área</option>
                                     {% for area in areas %}
                                     <option value="{{ area.id }}">{{ area.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" name="estado" id="editEstado" required>
+                                    <option value="">Seleccionar estado</option>
+                                    {% for estado in estados %}
+                                    <option value="{{ estado.id }}">{{ estado.nombre }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -647,6 +692,7 @@
                 nombre: form.find('input[name="nombre"]').val(),
                 tipo: form.find('input[name="tipo"]').val(),
                 numero_serie: form.find('input[name="numero_serie"]').val(),
+                sede: form.find('select[name="sede"]').val(),
                 area: form.find('select[name="area"]').val(),
                 estado: form.find('select[name="estado"]').val(),
                 marca: form.find('input[name="marca"]').val(),
@@ -772,6 +818,7 @@
                         $('#editNombre').val(equipo.nombre);
                         $('#editTipo').val(equipo.tipo);
                         $('#editNumeroSerie').val(equipo.numero_serie);
+                        $('#editSede').val(equipo.sede);
                         $('#editArea').val(equipo.area);
                         $('#editEstado').val(equipo.estado);
                         $('#editMarca').val(equipo.marca || '');
@@ -800,6 +847,7 @@
                 nombre: $('#editNombre').val(),
                 tipo: $('#editTipo').val(),
                 numero_serie: $('#editNumeroSerie').val(),
+                sede: $('#editSede').val(),
                 area: $('#editArea').val(),
                 estado: $('#editEstado').val(),
                 marca: $('#editMarca').val(),
@@ -818,6 +866,10 @@
             }
             if (!formData.tipo) {
                 alert('El tipo de equipo es requerido');
+                return;
+            }
+            if (!formData.sede) {
+                alert('La sede es requerida');
                 return;
             }
             if (!formData.area) {

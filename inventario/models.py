@@ -5,6 +5,18 @@ import re
 
 # Create your models here.
 
+class Sede(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    direccion = models.TextField(blank=True)
+    descripcion = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.nombre
+
+    class Meta:
+        verbose_name = "Sede"
+        verbose_name_plural = "Sedes"
+
 class Area(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     descripcion = models.TextField(blank=True)
@@ -39,6 +51,7 @@ class Equipo(models.Model):
     garantia_hasta = models.DateField(null=True, blank=True)
     
     # Relaciones
+    sede = models.ForeignKey(Sede, on_delete=models.CASCADE, related_name='equipos', verbose_name="Sede", null=True, blank=True)
     area = models.ForeignKey(Area, on_delete=models.CASCADE, related_name='equipos')
     estado = models.ForeignKey(Estado, on_delete=models.CASCADE, related_name='equipos')
     fecha_registro = models.DateField(auto_now_add=True)

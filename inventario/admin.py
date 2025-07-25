@@ -1,11 +1,20 @@
 from django.contrib import admin
-from .models import Area, Estado, Equipo
+from .models import Area, Estado, Equipo, Sede
+
+@admin.register(Sede)
+class SedeAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'total_equipos', 'direccion')
+    search_fields = ('nombre', 'direccion')
+    
+    def total_equipos(self, obj):
+        return obj.equipos.count()
+    total_equipos.short_description = "Total Equipos"
 
 @admin.register(Equipo)
 class EquipoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'tipo', 'numero_serie', 'marca', 'modelo', 'area', 'estado', 'garantia_vigente', 'fecha_registro')
+    list_display = ('nombre', 'tipo', 'numero_serie', 'marca', 'modelo', 'sede', 'area', 'estado', 'garantia_vigente', 'fecha_registro')
     search_fields = ('nombre', 'numero_serie', 'marca', 'modelo', 'proveedor', 'tipo')
-    list_filter = ('estado', 'area', 'marca', 'fecha_compra', 'tipo')
+    list_filter = ('estado', 'area', 'sede', 'marca', 'fecha_compra', 'tipo')
     readonly_fields = ('numero_serie', 'fecha_registro', 'garantia_vigente')
     
     fieldsets = (
@@ -16,7 +25,7 @@ class EquipoAdmin(admin.ModelAdmin):
             'fields': ('marca', 'modelo', 'precio', 'proveedor', 'fecha_compra', 'garantia_hasta')
         }),
         ('Ubicación y Estado', {
-            'fields': ('area', 'estado')
+            'fields': ('sede', 'area', 'estado')
         }),
         ('Información del Sistema', {
             'fields': ('fecha_registro', 'garantia_vigente'),

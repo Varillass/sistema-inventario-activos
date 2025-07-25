@@ -4,7 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 import json
-from .models import Equipo, Estado, Area
+from .models import Equipo, Estado, Area, Sede
 from django.db.models import Count
 # from .utils import generar_pdf_equipos  # Comentado temporalmente para evitar errores de reportlab
 
@@ -68,10 +68,11 @@ def dashboard(request):
 
 @login_required
 def equipos_lista(request):
-    equipos = Equipo.objects.all().select_related('area', 'estado')
+    equipos = Equipo.objects.all().select_related('sede', 'area', 'estado')
     
     context = {
         'equipos': equipos,
+        'sedes': Sede.objects.all(),
         'areas': Area.objects.all(),
         'estados': Estado.objects.all(),
     }
@@ -88,7 +89,7 @@ def crear_equipo(request):
         print("Datos recibidos:", data)
         
         # Validar campos requeridos
-        required_fields = ['nombre', 'tipo', 'area', 'estado']
+        required_fields = ['nombre', 'tipo', 'sede', 'area', 'estado']
         for field in required_fields:
             if not data.get(field):
                 return JsonResponse({
@@ -126,6 +127,7 @@ def crear_equipo(request):
             fecha_compra=fecha_compra,
             garantia_hasta=garantia_hasta,
             observacion=data.get('observacion', ''),
+            sede_id=data['sede'],
             area_id=data['area'],
             estado_id=data['estado']
         )
@@ -138,10 +140,17 @@ def crear_equipo(request):
                 'nombre': equipo.nombre,
                 'numero_serie': equipo.numero_serie,
                 'tipo': equipo.tipo,
+                'sede': equipo.sede.nombre,
                 'area': equipo.area.nombre,
                 'estado': equipo.estado.nombre
             }
         })
+        
+    except Sede.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'La sede seleccionada no existe'
+        }, status=400)
         
     except Area.DoesNotExist:
         return JsonResponse({
@@ -181,6 +190,7 @@ def obtener_equipo(request, equipo_id):
                 'tipo': equipo.tipo,
                 'numero_serie': equipo.numero_serie,
                 'observacion': equipo.observacion,
+                'sede': equipo.sede.id,
                 'area': equipo.area.id,
                 'estado': equipo.estado.id,
                 'marca': getattr(equipo, 'marca', ''),
@@ -207,7 +217,7 @@ def editar_equipo(request, equipo_id):
         data = json.loads(request.body)
         
         # Validar campos requeridos
-        required_fields = ['nombre', 'tipo', 'area', 'estado']
+        required_fields = ['nombre', 'tipo', 'sede', 'area', 'estado']
         for field in required_fields:
             if not data.get(field):
                 return JsonResponse({
@@ -243,6 +253,7 @@ def editar_equipo(request, equipo_id):
         equipo.fecha_compra = fecha_compra
         equipo.garantia_hasta = garantia_hasta
         equipo.observacion = data.get('observacion', '')
+        equipo.sede_id = data['sede']
         equipo.area_id = data['area']
         equipo.estado_id = data['estado']
         
@@ -266,10 +277,17 @@ def editar_equipo(request, equipo_id):
                 'nombre': equipo.nombre,
                 'numero_serie': equipo.numero_serie,
                 'tipo': equipo.tipo,
+                'sede': equipo.sede.nombre,
                 'area': equipo.area.nombre,
                 'estado': equipo.estado.nombre
             }
         })
+        
+    except Sede.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'La sede seleccionada no existe'
+        }, status=400)
         
     except Area.DoesNotExist:
         return JsonResponse({
