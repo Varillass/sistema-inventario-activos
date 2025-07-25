@@ -8,6 +8,29 @@ pip install -r requirements.txt --no-cache-dir
 echo "Recolectando archivos estáticos..."
 python manage.py collectstatic --no-input
 
+echo "Intentando conectar a MySQL..."
+python -c "
+import os
+import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'inventario_activos.settings')
+django.setup()
+
+from django.db import connection
+try:
+    connection.ensure_connection()
+    print('✅ Conexión a MySQL exitosa')
+    mysql_available = True
+except Exception as e:
+    print('⚠️ Error conectando a MySQL:', str(e))
+    print('🔄 Cambiando a SQLite...')
+    mysql_available = False
+"
+
+if [ $? -ne 0 ]; then
+    echo "🔄 Configurando para usar SQLite..."
+    export DJANGO_SETTINGS_MODULE=inventario_activos.settings_sqlite_fallback
+fi
+
 echo "Ejecutando migraciones..."
 python manage.py migrate
 
