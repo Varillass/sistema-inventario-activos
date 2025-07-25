@@ -10,7 +10,15 @@
             <div class="row align-items-center">
                 <div class="col-lg-8">
                     <div class="row g-3">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
+                            <select class="form-select" id="filtroSede">
+                                <option value="">Todas las sedes</option>
+                                {% for sede in sedes %}
+                                <option value="{{ sede.nombre }}">{{ sede.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
                             <select class="form-select" id="filtroArea">
                                 <option value="">Todas las áreas</option>
                                 {% for area in areas %}
@@ -18,7 +26,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <select class="form-select" id="filtroEstado">
                                 <option value="">Todos los estados</option>
                                 {% for estado in estados %}
@@ -663,12 +671,16 @@
             });
 
             // Filtros personalizados
+            $('#filtroSede').on('change', function() {
+                table.column(5).search($(this).val()).draw();
+            });
+
             $('#filtroArea').on('change', function() {
-                table.column(3).search($(this).val()).draw();
+                table.column(6).search($(this).val()).draw();
             });
 
             $('#filtroEstado').on('change', function() {
-                table.column(4).search($(this).val()).draw();
+                table.column(7).search($(this).val()).draw();
             });
 
             $('#filtroTipo').on('change', function() {
@@ -677,12 +689,12 @@
 
             // Limpiar filtros
             $('#limpiarFiltros').on('click', function() {
-                $('#filtroArea, #filtroEstado, #filtroTipo').val('');
+                $('#filtroSede, #filtroArea, #filtroEstado, #filtroTipo').val('');
                 table.search('').columns().search('').draw();
             });
         } else {
             // Si no hay datos, deshabilitar filtros
-            $('#filtroArea, #filtroEstado, #filtroTipo, #limpiarFiltros').prop('disabled', true);
+            $('#filtroSede, #filtroArea, #filtroEstado, #filtroTipo, #limpiarFiltros').prop('disabled', true);
         }
 
         // Guardar equipo
