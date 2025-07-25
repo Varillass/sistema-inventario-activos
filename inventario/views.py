@@ -392,9 +392,51 @@ def descargar_plantilla_excel(request):
 @login_required
 def importar_equipos_excel(request):
     """
-    Vista para importar equipos desde Excel - TEMPORALMENTE DESHABILITADA
+    Vista para importar equipos desde Excel
     """
-    return JsonResponse({
-        'success': False,
-        'error': 'La importación de Excel está temporalmente deshabilitada. Funcionalidad disponible próximamente.'
-    }, status=503)
+    try:
+        if 'archivo' not in request.FILES:
+            return JsonResponse({
+                'success': False,
+                'error': 'No se ha seleccionado ningún archivo'
+            }, status=400)
+        
+        archivo = request.FILES['archivo']
+        
+        # Validar archivo
+        from .utils import validar_archivo_excel, procesar_importacion_excel
+        es_valido, mensaje = validar_archivo_excel(archivo)
+        
+        if not es_valido:
+            return JsonResponse({
+                'success': False,
+                'error': mensaje
+            }, status=400)
+        
+        # Procesar importación
+        equipos_creados, errores = procesar_importacion_excel(archivo)
+        
+        # Preparar respuesta
+        if equipos_creados > 0:
+            mensaje = f'Se importaron {equipos_creados} equipos exitosamente'
+            if errores:
+                mensaje += f'. Se encontraron {len(errores)} errores'
+            
+            return JsonResponse({
+                'success': True,
+                'message': mensaje,
+                'equipos_creados': equipos_creados,
+                'errores': errores
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'No se pudo importar ningún equipo. Verifica el formato del archivo.',
+                'errores': errores
+            }, status=400)
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al procesar el archivo: {str(e)}'
+        }, status=500)

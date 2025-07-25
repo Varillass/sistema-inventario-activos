@@ -352,173 +352,178 @@ def validar_archivo_excel(archivo):
 
 def procesar_importacion_excel(archivo):
     """
-    Procesa la importación masiva desde Excel
+    Procesa la importación masiva desde Excel usando openpyxl
     """
-    # Validar archivo
-    es_valido, resultado = validar_archivo_excel(archivo)
-    if not es_valido:
-        return False, resultado, []
-    
-    # df = resultado # Comentado temporalmente para Render
-    
-    # Mapeo de columnas esperadas (sin distinguir mayúsculas)
-    columnas_requeridas = {
-        'nombre': ['nombre', 'name', 'equipo', 'equipment'],
-        'tipo': ['tipo', 'type', 'categoria', 'category'],
-        'area': ['area', 'área', 'departamento', 'department'],
-        'estado': ['estado', 'status', 'condition'],
-    }
-    
-    columnas_opcionales = {
-        'marca': ['marca', 'brand', 'fabricante', 'manufacturer'],
-        'modelo': ['modelo', 'model'],
-        'precio': ['precio', 'price', 'cost', 'costo', 'valor', 'value'],
-        'proveedor': ['proveedor', 'supplier', 'vendor'],
-        'observacion': ['observacion', 'observación', 'descripcion', 'descripción', 'description', 'notes', 'notas'],
-        'fecha_compra': ['fecha_compra', 'fecha compra', 'purchase_date', 'date_purchased', 'compra'],
-        'garantia_hasta': ['garantia_hasta', 'garantía hasta', 'warranty_until', 'garantia', 'garantía']
-    }
-    
-    # Normalizar nombres de columnas del DataFrame
-    # df.columns = df.columns.str.lower().str.strip() # Comentado temporalmente para Render
-    
-    # Mapear columnas del archivo a nuestros campos
-    mapeo_columnas = {}
-    
-    # Buscar columnas requeridas
-    for campo, posibles_nombres in columnas_requeridas.items():
-        encontrada = False
-        for col in None: # Simular columnas del DataFrame sin pandas
-            if any(nombre in col for nombre in posibles_nombres):
-                mapeo_columnas[campo] = col
-                encontrada = True
-                break
+    try:
+        # Cargar archivo Excel
+        wb = openpyxl.load_workbook(archivo)
+        ws = wb.active
         
-        if not encontrada:
-            return False, f"Columna requerida '{campo}' no encontrada. Busque: {', '.join(posibles_nombres)}", []
-    
-    # Buscar columnas opcionales
-    for campo, posibles_nombres in columnas_opcionales.items():
-        for col in None: # Simular columnas del DataFrame sin pandas
-            if any(nombre in col for nombre in posibles_nombres):
-                mapeo_columnas[campo] = col
-                break
-    
-    # Procesar datos
-    equipos_procesados = []
-    errores = []
-    
-    for index, row in None: # Simular iterador de filas sin pandas
-        try:
-            fila_num = index + 2  # +2 porque index empieza en 0 y primera fila son headers
+        # Obtener encabezados de la primera fila
+        headers = []
+        for cell in ws[1]:
+            headers.append(str(cell.value).strip() if cell.value else '')
+        
+        # Mapeo de columnas esperadas
+        columnas_requeridas = {
+            'nombre': ['nombre', 'name', 'equipo', 'equipment'],
+            'tipo': ['tipo', 'type', 'categoria', 'category'],
+            'area': ['area', 'área', 'departamento', 'department'],
+            'estado': ['estado', 'status', 'condition'],
+        }
+        
+        columnas_opcionales = {
+            'marca': ['marca', 'brand', 'fabricante', 'manufacturer'],
+            'modelo': ['modelo', 'model'],
+            'precio': ['precio', 'price', 'cost', 'costo', 'valor', 'value'],
+            'proveedor': ['proveedor', 'supplier', 'vendor'],
+            'observacion': ['observacion', 'observación', 'descripcion', 'descripción', 'description', 'notes', 'notas'],
+            'fecha_compra': ['fecha_compra', 'fecha compra', 'purchase_date', 'date_purchased', 'compra'],
+            'garantia_hasta': ['garantia_hasta', 'garantía hasta', 'warranty_until', 'garantia', 'garantía']
+        }
+        
+        # Mapear columnas del archivo a nuestros campos
+        mapeo_columnas = {}
+        
+        # Buscar columnas requeridas
+        for campo, posibles_nombres in columnas_requeridas.items():
+            encontrada = False
+            for i, header in enumerate(headers):
+                if any(nombre.lower() in header.lower() for nombre in posibles_nombres):
+                    mapeo_columnas[campo] = i
+                    encontrada = True
+                    break
             
-            # Extraer datos requeridos
-            nombre = str(row[mapeo_columnas['nombre']]).strip()
-            tipo = str(row[mapeo_columnas['tipo']]).strip()
-            area_nombre = str(row[mapeo_columnas['area']]).strip()
-            estado_nombre = str(row[mapeo_columnas['estado']]).strip()
-            
-            # Validar datos requeridos
-            if not nombre or nombre == 'nan':
-                errores.append(f"Fila {fila_num}: Nombre es requerido")
-                continue
-            
-            if not tipo or tipo == 'nan':
-                errores.append(f"Fila {fila_num}: Tipo es requerido")
-                continue
-            
-            # Buscar o crear área
+            if not encontrada:
+                return 0, [f"Columna requerida '{campo}' no encontrada. Busque: {', '.join(posibles_nombres)}"]
+        
+        # Buscar columnas opcionales
+        for campo, posibles_nombres in columnas_opcionales.items():
+            for i, header in enumerate(headers):
+                if any(nombre.lower() in header.lower() for nombre in posibles_nombres):
+                    mapeo_columnas[campo] = i
+                    break
+        
+        # Procesar datos
+        equipos_creados = 0
+        errores = []
+        
+        for row_num in range(2, ws.max_row + 1):  # Empezar desde fila 2 (después de headers)
             try:
-                area = Area.objects.get(nombre__iexact=area_nombre)
-            except Area.DoesNotExist:
-                area = Area.objects.create(nombre=area_nombre)
-            
-            # Buscar o crear estado
-            try:
-                estado = Estado.objects.get(nombre__iexact=estado_nombre)
-            except Estado.DoesNotExist:
-                estado = Estado.objects.create(nombre=estado_nombre)
-            
-            # Datos opcionales
-            marca = row.get(mapeo_columnas.get('marca', ''), '')
-            if pd.isna(marca): # Comentado temporalmente para Render
-                marca = '' # Comentado temporalmente para Render
-            else: # Comentado temporalmente para Render
-                marca = str(marca).strip() # Comentado temporalmente para Render
-            
-            modelo = row.get(mapeo_columnas.get('modelo', ''), '')
-            if pd.isna(modelo): # Comentado temporalmente para Render
-                modelo = '' # Comentado temporalmente para Render
-            else: # Comentado temporalmente para Render
-                modelo = str(modelo).strip() # Comentado temporalmente para Render
-            
-            # Precio
-            precio = None
-            if 'precio' in mapeo_columnas:
-                precio_val = row.get(mapeo_columnas['precio'], '')
-                if not pd.isna(precio_val) and precio_val != '':
+                # Extraer datos requeridos
+                nombre = str(ws.cell(row=row_num, column=mapeo_columnas['nombre'] + 1).value or '').strip()
+                tipo = str(ws.cell(row=row_num, column=mapeo_columnas['tipo'] + 1).value or '').strip()
+                area_nombre = str(ws.cell(row=row_num, column=mapeo_columnas['area'] + 1).value or '').strip()
+                estado_nombre = str(ws.cell(row=row_num, column=mapeo_columnas['estado'] + 1).value or '').strip()
+                
+                # Validar datos requeridos
+                if not nombre or nombre == 'None':
+                    errores.append(f"Fila {row_num}: Nombre es requerido")
+                    continue
+                
+                if not tipo or tipo == 'None':
+                    errores.append(f"Fila {row_num}: Tipo es requerido")
+                    continue
+                
+                # Buscar o crear área
+                try:
+                    area = Area.objects.get(nombre__iexact=area_nombre)
+                except Area.DoesNotExist:
+                    area = Area.objects.create(nombre=area_nombre)
+                
+                # Buscar o crear estado
+                try:
+                    estado = Estado.objects.get(nombre__iexact=estado_nombre)
+                except Estado.DoesNotExist:
+                    estado = Estado.objects.create(nombre=estado_nombre)
+                
+                # Datos opcionales
+                marca = str(ws.cell(row=row_num, column=mapeo_columnas.get('marca', 0) + 1).value or '').strip()
+                modelo = str(ws.cell(row=row_num, column=mapeo_columnas.get('modelo', 0) + 1).value or '').strip()
+                proveedor = str(ws.cell(row=row_num, column=mapeo_columnas.get('proveedor', 0) + 1).value or '').strip()
+                observacion = str(ws.cell(row=row_num, column=mapeo_columnas.get('observacion', 0) + 1).value or '').strip()
+                
+                # Procesar precio
+                precio_cell = ws.cell(row=row_num, column=mapeo_columnas.get('precio', 0) + 1)
+                precio = None
+                if precio_cell.value:
                     try:
-                        # Limpiar formato de precio (quitar $, comas, etc.)
-                        precio_str = str(precio_val).replace('$', '').replace(',', '').strip()
-                        precio = float(precio_str)
+                        precio = float(str(precio_cell.value).replace(',', '').replace('$', ''))
                     except (ValueError, TypeError):
-                        errores.append(f"Fila {fila_num}: Precio inválido '{precio_val}'")
-            
-            # Proveedor
-            proveedor = ''
-            if 'proveedor' in mapeo_columnas:
-                prov_val = row.get(mapeo_columnas['proveedor'], '')
-                if not pd.isna(prov_val):
-                    proveedor = str(prov_val).strip()
-            
-            # Observación
-            observacion = ''
-            if 'observacion' in mapeo_columnas:
-                obs_val = row.get(mapeo_columnas['observacion'], '')
-                if not pd.isna(obs_val):
-                    observacion = str(obs_val).strip()
-            
-            # Fechas
-            fecha_compra = None
-            if 'fecha_compra' in mapeo_columnas:
-                fecha_val = row.get(mapeo_columnas['fecha_compra'], '')
-                if not pd.isna(fecha_val) and fecha_val != '':
+                        errores.append(f"Fila {row_num}: Precio inválido")
+                        continue
+                
+                # Procesar fechas
+                fecha_compra = None
+                garantia_hasta = None
+                
+                fecha_compra_cell = ws.cell(row=row_num, column=mapeo_columnas.get('fecha_compra', 0) + 1)
+                if fecha_compra_cell.value:
                     try:
-                        fecha_compra = pd.to_datetime(fecha_val).date() # Comentado temporalmente para Render
-                    except:
-                        errores.append(f"Fila {fila_num}: Fecha de compra inválida '{fecha_val}'")
-            
-            garantia_hasta = None
-            if 'garantia_hasta' in mapeo_columnas:
-                garantia_val = row.get(mapeo_columnas['garantia_hasta'], '')
-                if not pd.isna(garantia_val) and garantia_val != '':
+                        if isinstance(fecha_compra_cell.value, datetime):
+                            fecha_compra = fecha_compra_cell.value.date()
+                        else:
+                            fecha_compra = datetime.strptime(str(fecha_compra_cell.value), '%d/%m/%Y').date()
+                    except (ValueError, TypeError):
+                        errores.append(f"Fila {row_num}: Fecha de compra inválida")
+                        continue
+                
+                garantia_cell = ws.cell(row=row_num, column=mapeo_columnas.get('garantia_hasta', 0) + 1)
+                if garantia_cell.value:
                     try:
-                        garantia_hasta = pd.to_datetime(garantia_val).date() # Comentado temporalmente para Render
-                    except:
-                        errores.append(f"Fila {fila_num}: Fecha de garantía inválida '{garantia_val}'")
-            
-            # Crear objeto de datos para el equipo
-            equipo_data = {
-                'nombre': nombre,
-                'tipo': tipo,
-                'area': area,
-                'estado': estado,
-                'marca': marca,
-                'modelo': modelo,
-                'precio': precio,
-                'proveedor': proveedor,
-                'observacion': observacion,
-                'fecha_compra': fecha_compra,
-                'garantia_hasta': garantia_hasta,
-                'fila': fila_num
-            }
-            
-            equipos_procesados.append(equipo_data)
-            
-        except Exception as e:
-            errores.append(f"Fila {fila_num}: Error procesando datos - {str(e)}")
-    
-    return True, equipos_procesados, errores
+                        if isinstance(garantia_cell.value, datetime):
+                            garantia_hasta = garantia_cell.value.date()
+                        else:
+                            garantia_hasta = datetime.strptime(str(garantia_cell.value), '%d/%m/%Y').date()
+                    except (ValueError, TypeError):
+                        errores.append(f"Fila {row_num}: Fecha de garantía inválida")
+                        continue
+                
+                # Generar número de serie si no existe
+                numero_serie = ''
+                if 'numero_serie' in mapeo_columnas:
+                    numero_serie = str(ws.cell(row=row_num, column=mapeo_columnas['numero_serie'] + 1).value or '').strip()
+                
+                if not numero_serie:
+                    # Generar número de serie automático
+                    prefijo = tipo[:3].upper() if len(tipo) >= 3 else tipo.upper()
+                    ultimo_equipo = Equipo.objects.filter(numero_serie__startswith=f"{prefijo}-").order_by('-numero_serie').first()
+                    
+                    if ultimo_equipo:
+                        try:
+                            ultimo_numero = int(ultimo_equipo.numero_serie.split('-')[-1])
+                            numero_serie = f"{prefijo}-{ultimo_numero + 1:05d}"
+                        except (ValueError, IndexError):
+                            numero_serie = f"{prefijo}-00001"
+                    else:
+                        numero_serie = f"{prefijo}-00001"
+                
+                # Crear equipo
+                equipo = Equipo.objects.create(
+                    nombre=nombre,
+                    tipo=tipo,
+                    numero_serie=numero_serie,
+                    marca=marca,
+                    modelo=modelo,
+                    precio=precio,
+                    proveedor=proveedor,
+                    fecha_compra=fecha_compra,
+                    garantia_hasta=garantia_hasta,
+                    observacion=observacion,
+                    area=area,
+                    estado=estado
+                )
+                
+                equipos_creados += 1
+                
+            except Exception as e:
+                errores.append(f"Fila {row_num}: Error - {str(e)}")
+                continue
+        
+        return equipos_creados, errores
+        
+    except Exception as e:
+        return 0, [f"Error al procesar archivo: {str(e)}"]
 
 def crear_equipos_masivo(equipos_data):
     """
