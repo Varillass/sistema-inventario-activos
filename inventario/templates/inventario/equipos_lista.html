@@ -166,8 +166,8 @@
                                 {% endif %}
                             </td>
                             <td>{{ equipo.fecha_registro|date:"d/m/Y" }}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
+                            <td style="min-width: 120px;">
+                                <div class="btn-group btn-group-sm" role="group">
                                     <button class="btn btn-outline-primary btn-ver" data-id="{{ equipo.id }}" title="Ver">
                                         <i class="fas fa-eye"></i>
                                     </button>
@@ -1130,4 +1130,39 @@
         }
     });
 </script>
+
+<style>
+    /* Estilos para asegurar que los botones de acciones se muestren correctamente */
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        border-radius: 0.2rem;
+    }
+    
+    /* Asegurar que la columna de acciones tenga suficiente espacio */
+    #equiposTable th:last-child,
+    #equiposTable td:last-child {
+        min-width: 140px;
+        width: 140px;
+    }
+    
+    /* Hacer que los botones sean más visibles */
+    .btn-outline-primary:hover,
+    .btn-outline-warning:hover,
+    .btn-outline-danger:hover {
+        transform: scale(1.05);
+        transition: transform 0.2s ease;
+    }
+    
+    /* Asegurar que el grupo de botones no se rompa */
+    .btn-group {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+    }
+    
+    .btn-group .btn {
+        flex: 1;
+        white-space: nowrap;
+    }
+</style>
 {% endblock %} 
