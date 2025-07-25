@@ -68,6 +68,9 @@
                     <button class="btn btn-outline-primary" id="exportarPdfBtn">
                         <i class="fas fa-file-pdf"></i> Exportar PDF
                     </button>
+                    <button class="btn btn-outline-success" id="exportarExcelBtn">
+                        <i class="fas fa-file-excel"></i> Exportar Excel
+                    </button>
                 </div>
             </div>
         </div>
@@ -924,6 +927,38 @@
             var link = document.createElement('a');
             link.href = url;
             link.download = 'inventario_activos.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Restaurar botón después de un momento
+            setTimeout(function() {
+                $btn.prop('disabled', false).html(originalHtml);
+            }, 2000);
+        });
+
+        // Exportar Excel
+        $('#exportarExcelBtn').on('click', function() {
+            // Obtener filtros actuales
+            var filtroArea = $('#filtroArea').val() || 'todas';
+            var filtroEstado = $('#filtroEstado').val() || 'todos';
+            var filtroTipo = $('#filtroTipo').val() || 'todos';
+            
+            // Construir URL con parámetros
+            var url = '{% url "exportar_equipos_excel" %}' + 
+                      '?area=' + encodeURIComponent(filtroArea) +
+                      '&estado=' + encodeURIComponent(filtroEstado) +
+                      '&tipo=' + encodeURIComponent(filtroTipo);
+            
+            // Cambiar el botón temporalmente
+            var $btn = $(this);
+            var originalHtml = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Generando Excel...');
+            
+            // Crear enlace temporal para descarga
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = 'inventario_activos.xlsx';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);

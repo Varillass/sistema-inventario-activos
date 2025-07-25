@@ -10,225 +10,340 @@ from django.db.models import Count
 from .models import Equipo, Area, Estado
 # import pandas as pd  # Comentado temporalmente para Render
 import re
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 
-def generar_pdf_equipos(filtro_area=None, filtro_estado=None, filtro_tipo=None):
+def generar_pdf_equipos(equipos):
     """
-    Genera un PDF profesional con el listado de equipos
+    Genera un PDF profesional con la lista de equipos
     """
+    # Crear buffer para el PDF
     buffer = BytesIO()
     
-    # Configuración del documento
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=72,
-        leftMargin=72,
-        topMargin=72,
-        bottomMargin=18
-    )
+    # Crear documento
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    elements = []
     
     # Estilos
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
-        fontSize=20,
+        fontSize=18,
         spaceAfter=30,
         alignment=TA_CENTER,
-        textColor=colors.HexColor('#2c3e50'),
-        fontName='Helvetica-Bold'
+        textColor=colors.darkblue
     )
     
     subtitle_style = ParagraphStyle(
         'CustomSubtitle',
-        parent=styles['Heading2'],
-        fontSize=14,
-        spaceAfter=20,
-        alignment=TA_LEFT,
-        textColor=colors.HexColor('#34495e'),
-        fontName='Helvetica-Bold'
-    )
-    
-    info_style = ParagraphStyle(
-        'InfoStyle',
         parent=styles['Normal'],
-        fontSize=10,
-        spaceAfter=10,
-        alignment=TA_RIGHT,
-        textColor=colors.HexColor('#7f8c8d')
+        fontSize=12,
+        spaceAfter=20,
+        alignment=TA_CENTER,
+        textColor=colors.grey
     )
     
-    # Contenido del PDF
-    story = []
-    
-    # Encabezado
+    # Título del documento
     title = Paragraph("INVENTARIO DE ACTIVOS", title_style)
-    story.append(title)
+    elements.append(title)
     
-    # Información del reporte
-    fecha_actual = datetime.now().strftime("%d/%m/%Y %H:%M")
-    info_reporte = f"Fecha de generación: {fecha_actual}"
-    story.append(Paragraph(info_reporte, info_style))
-    story.append(Spacer(1, 20))
+    # Subtítulo con fecha
+    fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
+    subtitle = Paragraph(f"Reporte generado el {fecha}", subtitle_style)
+    elements.append(subtitle)
     
-    # Filtros aplicados
-    filtros_aplicados = []
-    if filtro_area and filtro_area != 'todas':
-        try:
-            area = Area.objects.get(id=filtro_area)
-            filtros_aplicados.append(f"Área: {area.nombre}")
-        except Area.DoesNotExist:
-            pass
+    elements.append(Spacer(1, 20))
     
-    if filtro_estado and filtro_estado != 'todos':
-        try:
-            estado = Estado.objects.get(id=filtro_estado)
-            filtros_aplicados.append(f"Estado: {estado.nombre}")
-        except Estado.DoesNotExist:
-            pass
+    # Datos de la tabla
+    data = [['Nombre', 'Tipo', 'N° Serie', 'Marca/Modelo', 'Precio', 'Área', 'Estado', 'Garantía']]
     
-    if filtro_tipo and filtro_tipo != 'todos':
-        filtros_aplicados.append(f"Tipo: {filtro_tipo}")
-    
-    if filtros_aplicados:
-        story.append(Paragraph("FILTROS APLICADOS", subtitle_style))
-        for filtro in filtros_aplicados:
-            story.append(Paragraph(f"• {filtro}", styles['Normal']))
-        story.append(Spacer(1, 20))
-    
-    # Obtener equipos según filtros
-    equipos = Equipo.objects.all()
-    
-    if filtro_area and filtro_area != 'todas':
-        equipos = equipos.filter(area_id=filtro_area)
-    
-    if filtro_estado and filtro_estado != 'todos':
-        equipos = equipos.filter(estado_id=filtro_estado)
-    
-    if filtro_tipo and filtro_tipo != 'todos':
-        equipos = equipos.filter(tipo__icontains=filtro_tipo)
-    
-    equipos = equipos.select_related('area', 'estado').order_by('numero_serie')
-    
-    # Resumen estadístico
-    total_equipos = equipos.count()
-    story.append(Paragraph("RESUMEN", subtitle_style))
-    story.append(Paragraph(f"Total de equipos: {total_equipos}", styles['Normal']))
-    
-    # Estadísticas por área
-    stats_area = equipos.values('area__nombre').annotate(total=Count('id')).order_by('-total')
-    if stats_area:
-        story.append(Paragraph("<br/>Distribución por área:", styles['Normal']))
-        for stat in stats_area:
-            story.append(Paragraph(f"• {stat['area__nombre']}: {stat['total']} equipos", styles['Normal']))
-    
-    # Estadísticas por estado
-    stats_estado = equipos.values('estado__nombre').annotate(total=Count('id')).order_by('-total')
-    if stats_estado:
-        story.append(Paragraph("<br/>Distribución por estado:", styles['Normal']))
-        for stat in stats_estado:
-            story.append(Paragraph(f"• {stat['estado__nombre']}: {stat['total']} equipos", styles['Normal']))
-    
-    story.append(Spacer(1, 30))
-    
-    # Tabla de equipos
-    story.append(Paragraph("LISTADO DETALLADO DE EQUIPOS", subtitle_style))
-    
-    # Encabezados de la tabla
-    data = [
-        ['N° Serie', 'Tipo', 'Marca', 'Modelo', 'Área', 'Estado', 'Precio']
-    ]
-    
-    # Datos de equipos
     for equipo in equipos:
-        precio_formato = f"${equipo.precio:,.2f}" if equipo.precio else "N/A"
+        # Formatear precio
+        precio_str = f"${equipo.precio:,.2f}" if equipo.precio else "N/A"
+        
+        # Formatear marca/modelo
+        marca_modelo = f"{equipo.marca} {equipo.modelo}".strip()
+        if not marca_modelo:
+            marca_modelo = "N/A"
+        
+        # Estado de garantía
+        garantia_status = "Vigente" if equipo.garantia_vigente else "Vencida" if equipo.garantia_hasta else "N/A"
+        
         data.append([
-            equipo.numero_serie,
+            equipo.nombre,
             equipo.tipo,
-            equipo.marca or "N/A",
-            equipo.modelo or "N/A",
+            equipo.numero_serie,
+            marca_modelo,
+            precio_str,
             equipo.area.nombre,
             equipo.estado.nombre,
-            precio_formato
+            garantia_status
         ])
     
     # Crear tabla
-    table = Table(data, colWidths=[1.2*inch, 1*inch, 1*inch, 1*inch, 1*inch, 0.8*inch, 0.8*inch])
+    table = Table(data, colWidths=[1.5*inch, 0.8*inch, 1*inch, 1.2*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch])
     
     # Estilo de la tabla
-    table.setStyle(TableStyle([
-        # Encabezado
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#34495e')),
+    style = TableStyle([
+        # Encabezados
+        ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 10),
         
-        # Contenido
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        # Datos
+        ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 1), (-1, -1), 8),
-        
-        # Bordes
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
         
-        # Alternating row colors
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.beige, colors.lightgrey]),
-        
-        # Espaciado
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-    ]))
+        # Alineación específica para columnas
+        ('ALIGN', (4, 1), (4, -1), 'RIGHT'),  # Precio
+        ('ALIGN', (2, 1), (2, -1), 'CENTER'),  # N° Serie
+        ('ALIGN', (6, 1), (6, -1), 'CENTER'),  # Estado
+        ('ALIGN', (7, 1), (7, -1), 'CENTER'),  # Garantía
+    ])
     
-    story.append(table)
+    table.setStyle(style)
+    elements.append(table)
     
-    # Pie de página
-    story.append(Spacer(1, 50))
-    footer_style = ParagraphStyle(
-        'Footer',
-        parent=styles['Normal'],
-        fontSize=8,
-        alignment=TA_CENTER,
-        textColor=colors.HexColor('#95a5a6')
-    )
+    # Estadísticas
+    elements.append(Spacer(1, 30))
     
-    story.append(Paragraph("Sistema de Inventario de Activos - Reporte Generado Automáticamente", footer_style))
-    story.append(Paragraph(f"Página generada el {fecha_actual}", footer_style))
+    # Contar equipos por estado
+    estados_count = {}
+    for equipo in equipos:
+        estado = equipo.estado.nombre
+        estados_count[estado] = estados_count.get(estado, 0) + 1
+    
+    # Crear tabla de estadísticas
+    stats_data = [['Estadísticas del Inventario']]
+    stats_data.append(['Estado', 'Cantidad'])
+    
+    for estado, cantidad in estados_count.items():
+        stats_data.append([estado, str(cantidad)])
+    
+    stats_table = Table(stats_data, colWidths=[2*inch, 1*inch])
+    stats_style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.darkgreen),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgreen]),
+        ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+    ])
+    
+    stats_table.setStyle(stats_style)
+    elements.append(stats_table)
     
     # Construir PDF
-    doc.build(story)
+    doc.build(elements)
     
-    # Obtener el PDF
+    # Obtener PDF
+    pdf = buffer.getvalue()
+    buffer.close()
+    
+    return pdf
+
+def generar_excel_equipos(equipos):
+    """
+    Genera un archivo Excel profesional con la lista de equipos
+    """
+    # Crear workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Inventario de Activos"
+    
+    # Estilos
+    header_font = Font(bold=True, color="FFFFFF", size=12)
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    
+    data_font = Font(size=10)
+    data_alignment = Alignment(horizontal="left", vertical="center")
+    
+    # Bordes
+    thin_border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    # Título
+    ws.merge_cells('A1:H1')
+    ws['A1'] = "INVENTARIO DE ACTIVOS"
+    ws['A1'].font = Font(bold=True, size=16, color="366092")
+    ws['A1'].alignment = Alignment(horizontal="center")
+    
+    # Fecha
+    ws.merge_cells('A2:H2')
+    fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
+    ws['A2'] = f"Reporte generado el {fecha}"
+    ws['A2'].font = Font(size=10, color="666666")
+    ws['A2'].alignment = Alignment(horizontal="center")
+    
+    # Encabezados
+    headers = [
+        'Nombre', 'Tipo', 'N° Serie', 'Marca', 'Modelo', 'Precio', 
+        'Proveedor', 'Fecha Compra', 'Garantía Hasta', 'Área', 'Estado', 'Observación'
+    ]
+    
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=4, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = thin_border
+    
+    # Datos
+    for row, equipo in enumerate(equipos, 5):
+        # Formatear fecha de compra
+        fecha_compra = equipo.fecha_compra.strftime("%d/%m/%Y") if equipo.fecha_compra else ""
+        
+        # Formatear garantía
+        garantia_hasta = equipo.garantia_hasta.strftime("%d/%m/%Y") if equipo.garantia_hasta else ""
+        
+        # Formatear precio
+        precio = f"${equipo.precio:,.2f}" if equipo.precio else ""
+        
+        # Datos de la fila
+        row_data = [
+            equipo.nombre,
+            equipo.tipo,
+            equipo.numero_serie,
+            equipo.marca or "",
+            equipo.modelo or "",
+            precio,
+            equipo.proveedor or "",
+            fecha_compra,
+            garantia_hasta,
+            equipo.area.nombre,
+            equipo.estado.nombre,
+            equipo.observacion or ""
+        ]
+        
+        for col, value in enumerate(row_data, 1):
+            cell = ws.cell(row=row, column=col, value=value)
+            cell.font = data_font
+            cell.alignment = data_alignment
+            cell.border = thin_border
+    
+    # Ajustar ancho de columnas
+    column_widths = [25, 15, 15, 15, 15, 12, 20, 12, 12, 15, 15, 30]
+    for col, width in enumerate(column_widths, 1):
+        ws.column_dimensions[get_column_letter(col)].width = width
+    
+    # Crear hoja de estadísticas
+    ws_stats = wb.create_sheet("Estadísticas")
+    
+    # Estadísticas por estado
+    estados_count = {}
+    for equipo in equipos:
+        estado = equipo.estado.nombre
+        estados_count[estado] = estados_count.get(estado, 0) + 1
+    
+    ws_stats['A1'] = "Estadísticas del Inventario"
+    ws_stats['A1'].font = Font(bold=True, size=14, color="366092")
+    
+    ws_stats['A3'] = "Estado"
+    ws_stats['B3'] = "Cantidad"
+    ws_stats['A3'].font = header_font
+    ws_stats['B3'].font = header_font
+    ws_stats['A3'].fill = header_fill
+    ws_stats['B3'].fill = header_fill
+    
+    row = 4
+    for estado, cantidad in estados_count.items():
+        ws_stats[f'A{row}'] = estado
+        ws_stats[f'B{row}'] = cantidad
+        row += 1
+    
+    # Ajustar ancho de columnas en estadísticas
+    ws_stats.column_dimensions['A'].width = 20
+    ws_stats.column_dimensions['B'].width = 10
+    
+    # Guardar en buffer
+    buffer = BytesIO()
+    wb.save(buffer)
     buffer.seek(0)
-    return buffer 
+    
+    return buffer.getvalue()
+
+def generar_plantilla_excel():
+    """
+    Genera una plantilla Excel para importar equipos
+    """
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Plantilla Importación"
+    
+    # Estilos
+    header_font = Font(bold=True, color="FFFFFF", size=12)
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    
+    # Encabezados
+    headers = [
+        'Nombre*', 'Tipo*', 'N° Serie', 'Marca', 'Modelo', 'Precio', 
+        'Proveedor', 'Fecha Compra (DD/MM/YYYY)', 'Garantía Hasta (DD/MM/YYYY)', 
+        'Área*', 'Estado*', 'Observación'
+    ]
+    
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+    
+    # Ejemplos de datos
+    ejemplo_data = [
+        'Computadora Dell', 'Computadora', 'Com-00001', 'Dell', 'OptiPlex 7090', '1200.00',
+        'Dell Technologies', '15/01/2023', '15/01/2026', 'Administración', 'Operativo', 'Equipo principal'
+    ]
+    
+    for col, value in enumerate(ejemplo_data, 1):
+        ws.cell(row=2, column=col, value=value)
+    
+    # Ajustar ancho de columnas
+    column_widths = [25, 15, 15, 15, 15, 12, 20, 25, 25, 15, 15, 30]
+    for col, width in enumerate(column_widths, 1):
+        ws.column_dimensions[get_column_letter(col)].width = width
+    
+    # Guardar en buffer
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    
+    return buffer.getvalue()
 
 def validar_archivo_excel(archivo):
     """
-    Valida que el archivo sea un Excel válido
+    Valida que el archivo Excel tenga el formato correcto
     """
     try:
-        # Verificar extensión
-        nombre = archivo.name.lower()
-        if not (nombre.endswith('.xlsx') or nombre.endswith('.xls') or nombre.endswith('.csv')):
-            return False, "El archivo debe ser .xlsx, .xls o .csv"
+        wb = openpyxl.load_workbook(archivo)
+        ws = wb.active
         
-        # Intentar leer el archivo
-        if nombre.endswith('.csv'):
-            # df = pd.read_csv(archivo) # Comentado temporalmente para Render
-            pass # Simular lectura de CSV sin pandas
-        else:
-            # df = pd.read_excel(archivo) # Comentado temporalmente para Render
-            pass # Simular lectura de Excel sin pandas
+        # Verificar que tenga al menos una fila de datos
+        if ws.max_row < 2:
+            return False, "El archivo no contiene datos"
         
-        # Verificar que no esté vacío
-        # if df.empty: # Comentado temporalmente para Render
-        #     return False, "El archivo está vacío" # Comentado temporalmente para Render
+        # Verificar columnas requeridas
+        required_columns = ['Nombre', 'Tipo', 'Área', 'Estado']
+        headers = [ws.cell(row=1, column=i).value for i in range(1, 13)]
         
-        return True, None # Simular resultado de pandas
+        for col in required_columns:
+            if col not in headers:
+                return False, f"Falta la columna requerida: {col}"
+        
+        return True, "Archivo válido"
         
     except Exception as e:
         return False, f"Error al leer el archivo: {str(e)}"
@@ -429,96 +544,4 @@ def crear_equipos_masivo(equipos_data):
         except Exception as e:
             errores.append(f"Fila {fila}: Error al crear equipo - {str(e)}")
     
-    return equipos_creados, errores
-
-def generar_plantilla_excel():
-    """
-    Genera un archivo Excel de plantilla para importación
-    """
-    # Datos de ejemplo
-    data = {
-        'Nombre': [
-            'Compresor Industrial A1',
-            'Motor Eléctrico B2',
-            'Bomba Centrífuga C3'
-        ],
-        'Tipo': [
-            'Compresor',
-            'Motor',
-            'Bomba'
-        ],
-        'Area': [
-            'Producción',
-            'Mantenimiento',
-            'Utilidades'
-        ],
-        'Estado': [
-            'Operativo',
-            'En Mantenimiento',
-            'Operativo'
-        ],
-        'Marca': [
-            'Atlas Copco',
-            'WEG',
-            'Grundfos'
-        ],
-        'Modelo': [
-            'GA37VSD',
-            'W22-132S',
-            'CR15-04'
-        ],
-        'Precio': [
-            15000.00,
-            2500.50,
-            1800.75
-        ],
-        'Proveedor': [
-            'Equipos Industriales S.A.',
-            'Motores y Más Ltda.',
-            'Bombas del Norte'
-        ],
-        'Observacion': [
-            'Compresor de alta eficiencia con variador de frecuencia',
-            'Motor trifásico para uso industrial',
-            'Bomba centrífuga multietapa'
-        ],
-        'Fecha_Compra': [
-            '2023-01-15',
-            '2023-02-20',
-            '2023-03-10'
-        ],
-        'Garantia_Hasta': [
-            '2025-01-15',
-            '2024-02-20',
-            '2024-03-10'
-        ]
-    }
-    
-    # df = pd.DataFrame(data) # Comentado temporalmente para Render
-    
-    # Crear archivo en memoria
-    buffer = BytesIO()
-    # with pd.ExcelWriter(buffer, engine='openpyxl') as writer: # Comentado temporalmente para Render
-    #     df.to_excel(writer, sheet_name='Equipos', index=False) # Comentado temporalmente para Render
-        
-        # Obtener el workbook y la hoja # Comentado temporalmente para Render
-        # workbook = writer.book # Comentado temporalmente para Render
-        # worksheet = writer.sheets['Equipos'] # Comentado temporalmente para Render
-        
-        # Ajustar ancho de columnas # Comentado temporalmente para Render
-        # for column in worksheet.columns: # Comentado temporalmente para Render
-        #     max_length = 0 # Comentado temporalmente para Render
-        #     column_letter = column[0].column_letter # Comentado temporalmente para Render
-            
-        #     for cell in column: # Comentado temporalmente para Render
-        #         try: # Comentado temporalmente para Render
-        #             if len(str(cell.value)) > max_length: # Comentado temporalmente para Render
-        #                 max_length = len(str(cell.value)) # Comentado temporalmente para Render
-        #         except: # Comentado temporalmente para Render
-        #             pass # Comentado temporalmente para Render
-            
-        #     adjusted_width = min(max_length + 2, 50) # Comentado temporalmente para Render
-        #     worksheet.column_dimensions[column_letter].width = adjusted_width # Comentado temporalmente para Render
-    
-    buffer.seek(0)
-    return buffer 
+    return equipos_creados, errores 

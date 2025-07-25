@@ -12,13 +12,48 @@ from django.db.models import Count
 
 @login_required
 def dashboard(request):
-    # Totales por estado
+    # Función para asignar colores según el estado
+    def get_estado_color(estado_nombre):
+        estado_colors = {
+            'Operativo': 'success',      # Verde
+            'Bueno': 'success',          # Verde
+            'Nuevo': 'info',             # Azul
+            'Regular': 'warning',        # Amarillo
+            'Mantenimiento': 'warning',  # Amarillo
+            'En Reparación': 'warning',  # Amarillo
+            'Malo': 'danger',            # Rojo
+            'Inoperativo': 'danger',     # Rojo
+            'Fuera de Servicio': 'danger', # Rojo
+            'Dado de Baja': 'secondary', # Gris
+            'En Almacén': 'info',        # Azul
+        }
+        return estado_colors.get(estado_nombre, 'primary')
+    
+    def get_estado_icon(estado_nombre):
+        estado_icons = {
+            'Operativo': 'fa-check-circle',
+            'Bueno': 'fa-check-circle',
+            'Nuevo': 'fa-star',
+            'Regular': 'fa-exclamation-triangle',
+            'Mantenimiento': 'fa-tools',
+            'En Reparación': 'fa-wrench',
+            'Malo': 'fa-times-circle',
+            'Inoperativo': 'fa-times-circle',
+            'Fuera de Servicio': 'fa-ban',
+            'Dado de Baja': 'fa-trash',
+            'En Almacén': 'fa-box',
+        }
+        return estado_icons.get(estado_nombre, 'fa-question-circle')
+    
+    # Totales por estado con colores e iconos
     estados = Estado.objects.all()
     total_por_estado = []
     for estado in estados:
         total_por_estado.append({
             'nombre': estado.nombre,
-            'total': Equipo.objects.filter(estado=estado).count()
+            'total': Equipo.objects.filter(estado=estado).count(),
+            'color': get_estado_color(estado.nombre),
+            'icon': get_estado_icon(estado.nombre)
         })
 
     # Áreas con más equipos
@@ -49,6 +84,9 @@ def crear_equipo(request):
     try:
         data = json.loads(request.body)
         
+        # Debug: Imprimir los datos recibidos
+        print("Datos recibidos:", data)
+        
         # Validar campos requeridos
         required_fields = ['nombre', 'tipo', 'area', 'estado']
         for field in required_fields:
@@ -58,11 +96,35 @@ def crear_equipo(request):
                     'error': f'El campo {field} es requerido'
                 }, status=400)
         
+        # Procesar campos opcionales
+        precio = data.get('precio')
+        if precio == '' or precio is None:
+            precio = None
+        elif precio:
+            try:
+                precio = float(precio)
+            except (ValueError, TypeError):
+                precio = None
+        
+        fecha_compra = data.get('fecha_compra')
+        if fecha_compra == '' or fecha_compra is None:
+            fecha_compra = None
+            
+        garantia_hasta = data.get('garantia_hasta')
+        if garantia_hasta == '' or garantia_hasta is None:
+            garantia_hasta = None
+        
         # Crear el equipo
         equipo = Equipo.objects.create(
             nombre=data['nombre'],
             tipo=data['tipo'],
-            numero_serie=data.get('numero_serie', ''),  # Se generará automáticamente si está vacío
+            numero_serie=data.get('numero_serie', ''),
+            marca=data.get('marca', ''),
+            modelo=data.get('modelo', ''),
+            precio=precio,
+            proveedor=data.get('proveedor', ''),
+            fecha_compra=fecha_compra,
+            garantia_hasta=garantia_hasta,
             observacion=data.get('observacion', ''),
             area_id=data['area'],
             estado_id=data['estado']
@@ -125,6 +187,8 @@ def obtener_equipo(request, equipo_id):
                 'modelo': getattr(equipo, 'modelo', ''),
                 'precio': str(equipo.precio) if equipo.precio else '',
                 'proveedor': getattr(equipo, 'proveedor', ''),
+                'fecha_compra': equipo.fecha_compra.strftime('%Y-%m-%d') if equipo.fecha_compra else '',
+                'garantia_hasta': equipo.garantia_hasta.strftime('%Y-%m-%d') if equipo.garantia_hasta else '',
             }
         })
         
@@ -151,9 +215,33 @@ def editar_equipo(request, equipo_id):
                     'error': f'El campo {field} es requerido'
                 }, status=400)
         
+        # Procesar campos opcionales
+        precio = data.get('precio')
+        if precio == '' or precio is None:
+            precio = None
+        elif precio:
+            try:
+                precio = float(precio)
+            except (ValueError, TypeError):
+                precio = None
+        
+        fecha_compra = data.get('fecha_compra')
+        if fecha_compra == '' or fecha_compra is None:
+            fecha_compra = None
+            
+        garantia_hasta = data.get('garantia_hasta')
+        if garantia_hasta == '' or garantia_hasta is None:
+            garantia_hasta = None
+        
         # Actualizar el equipo
         equipo.nombre = data['nombre']
         equipo.tipo = data['tipo']
+        equipo.marca = data.get('marca', '')
+        equipo.modelo = data.get('modelo', '')
+        equipo.precio = precio
+        equipo.proveedor = data.get('proveedor', '')
+        equipo.fecha_compra = fecha_compra
+        equipo.garantia_hasta = garantia_hasta
         equipo.observacion = data.get('observacion', '')
         equipo.area_id = data['area']
         equipo.estado_id = data['estado']
@@ -232,22 +320,72 @@ def eliminar_equipo(request, equipo_id):
 @login_required
 def exportar_equipos_pdf(request):
     """
-    Vista para exportar equipos a PDF - TEMPORALMENTE DESHABILITADA
+    Vista para exportar equipos a PDF
     """
-    return JsonResponse({
-        'success': False,
-        'error': 'La exportación PDF está temporalmente deshabilitada. Funcionalidad disponible próximamente.'
-    }, status=503)
+    try:
+        # Obtener todos los equipos con sus relaciones
+        equipos = Equipo.objects.all().select_related('area', 'estado').order_by('numero_serie')
+        
+        # Generar PDF
+        from .utils import generar_pdf_equipos
+        pdf_content = generar_pdf_equipos(equipos)
+        
+        # Crear respuesta HTTP
+        response = HttpResponse(pdf_content, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="inventario_activos.pdf"'
+        
+        return response
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al generar PDF: {str(e)}'
+        }, status=500)
+
+@login_required
+def exportar_equipos_excel(request):
+    """
+    Vista para exportar equipos a Excel
+    """
+    try:
+        # Obtener todos los equipos con sus relaciones
+        equipos = Equipo.objects.all().select_related('area', 'estado').order_by('numero_serie')
+        
+        # Generar Excel
+        from .utils import generar_excel_equipos
+        excel_content = generar_excel_equipos(equipos)
+        
+        # Crear respuesta HTTP
+        response = HttpResponse(excel_content, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="inventario_activos.xlsx"'
+        
+        return response
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al generar Excel: {str(e)}'
+        }, status=500)
 
 @login_required
 def descargar_plantilla_excel(request):
     """
-    Vista para descargar plantilla Excel - TEMPORALMENTE DESHABILITADA
+    Vista para descargar plantilla Excel
     """
-    return JsonResponse({
-        'success': False,
-        'error': 'La descarga de plantilla Excel está temporalmente deshabilitada. Funcionalidad disponible próximamente.'
-    }, status=503)
+    try:
+        from .utils import generar_plantilla_excel
+        excel_content = generar_plantilla_excel()
+        
+        response = HttpResponse(excel_content, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="plantilla_importacion_equipos.xlsx"'
+        
+        return response
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error al generar plantilla Excel: {str(e)}'
+        }, status=500)
 
 @csrf_exempt
 @require_http_methods(["POST"])
