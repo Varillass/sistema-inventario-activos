@@ -135,6 +135,127 @@
             </div>
         </div>
     </div>
+
+    <!-- Sección de Mantenimiento -->
+    <div class="row">
+        <!-- Equipos con próximo mantenimiento -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-tools"></i> Próximo Mantenimiento (30 días)</h5>
+                    <span class="badge bg-white text-warning">{{ equipos_mantenimiento_proximo.count }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Equipo</th>
+                                    <th>Área</th>
+                                    <th>Fecha</th>
+                                    <th>Días</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for equipo in equipos_mantenimiento_proximo %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-cog text-warning me-2"></i>
+                                            <div>
+                                                <strong>{{ equipo.nombre }}</strong><br>
+                                                <small class="text-muted">{{ equipo.numero_serie }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ equipo.area.nombre }}</span>
+                                        {% if equipo.sede %}
+                                        <br><small class="text-muted">{{ equipo.sede.nombre }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ equipo.fecha_mantenimiento|date:"d/m/Y" }}</td>
+                                    <td>
+                                        {% if equipo.dias_restantes <= 7 %}
+                                            <span class="badge bg-danger">{{ equipo.dias_restantes }} días</span>
+                                        {% elif equipo.dias_restantes <= 14 %}
+                                            <span class="badge bg-warning">{{ equipo.dias_restantes }} días</span>
+                                        {% else %}
+                                            <span class="badge bg-info">{{ equipo.dias_restantes }} días</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="fas fa-check-circle fa-2x mb-2 text-success"></i><br>
+                                        No hay equipos con mantenimiento próximo
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Equipos con mantenimiento vencido -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Mantenimiento Vencido</h5>
+                    <span class="badge bg-white text-danger">{{ equipos_mantenimiento_vencido.count }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Equipo</th>
+                                    <th>Área</th>
+                                    <th>Fecha</th>
+                                    <th>Días</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for equipo in equipos_mantenimiento_vencido %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                                            <div>
+                                                <strong>{{ equipo.nombre }}</strong><br>
+                                                <small class="text-muted">{{ equipo.numero_serie }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ equipo.area.nombre }}</span>
+                                        {% if equipo.sede %}
+                                        <br><small class="text-muted">{{ equipo.sede.nombre }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ equipo.fecha_mantenimiento|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <span class="badge bg-danger">{{ equipo.dias_vencidos }} días vencido</span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="fas fa-check-circle fa-2x mb-2 text-success"></i><br>
+                                        No hay equipos con mantenimiento vencido
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}
 
 {% block extra_js %}

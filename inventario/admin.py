@@ -12,10 +12,10 @@ class SedeAdmin(admin.ModelAdmin):
 
 @admin.register(Equipo)
 class EquipoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'tipo', 'numero_serie', 'marca', 'modelo', 'sede', 'area', 'estado', 'garantia_vigente', 'fecha_registro')
+    list_display = ('nombre', 'tipo', 'numero_serie', 'marca', 'modelo', 'sede', 'area', 'estado', 'garantia_vigente', 'mantenimiento_status', 'fecha_registro')
     search_fields = ('nombre', 'numero_serie', 'marca', 'modelo', 'proveedor', 'tipo')
     list_filter = ('estado', 'area', 'sede', 'marca', 'fecha_compra', 'tipo')
-    readonly_fields = ('numero_serie', 'fecha_registro', 'garantia_vigente')
+    readonly_fields = ('numero_serie', 'fecha_registro', 'garantia_vigente', 'mantenimiento_proximo', 'mantenimiento_vencido')
     
     fieldsets = (
         ('Información Básica', {
@@ -23,6 +23,9 @@ class EquipoAdmin(admin.ModelAdmin):
         }),
         ('Información Comercial', {
             'fields': ('marca', 'modelo', 'precio', 'proveedor', 'fecha_compra', 'garantia_hasta')
+        }),
+        ('Mantenimiento', {
+            'fields': ('fecha_mantenimiento', 'vida_util', 'mantenimiento_proximo', 'mantenimiento_vencido')
         }),
         ('Ubicación y Estado', {
             'fields': ('sede', 'area', 'estado')
@@ -41,6 +44,17 @@ class EquipoAdmin(admin.ModelAdmin):
         else:
             return "❓ No definida"
     garantia_vigente.short_description = "Garantía"
+    
+    def mantenimiento_status(self, obj):
+        if obj.mantenimiento_vencido:
+            return "🔴 Vencido"
+        elif obj.mantenimiento_proximo:
+            return "🟡 Próximo"
+        elif obj.fecha_mantenimiento:
+            return "🟢 Programado"
+        else:
+            return "❓ No definido"
+    mantenimiento_status.short_description = "Mantenimiento"
 
 @admin.register(Area)
 class AreaAdmin(admin.ModelAdmin):

@@ -50,6 +50,10 @@ class Equipo(models.Model):
     fecha_compra = models.DateField(null=True, blank=True)
     garantia_hasta = models.DateField(null=True, blank=True)
     
+    # Información de mantenimiento
+    fecha_mantenimiento = models.DateField(null=True, blank=True, verbose_name="Fecha de Mantenimiento", help_text="Fecha del próximo mantenimiento programado")
+    vida_util = models.IntegerField(null=True, blank=True, verbose_name="Vida Útil (años)", help_text="Vida útil estimada del equipo en años")
+    
     # Relaciones
     sede = models.ForeignKey(Sede, on_delete=models.CASCADE, related_name='equipos', verbose_name="Sede", null=True, blank=True)
     area = models.ForeignKey(Area, on_delete=models.CASCADE, related_name='equipos')
@@ -98,6 +102,21 @@ class Equipo(models.Model):
     def garantia_vigente(self):
         if self.garantia_hasta:
             return self.garantia_hasta >= date.today()
+        return False
+    
+    @property
+    def mantenimiento_proximo(self):
+        """Retorna True si el mantenimiento está programado para los próximos 30 días"""
+        if self.fecha_mantenimiento:
+            dias_restantes = (self.fecha_mantenimiento - date.today()).days
+            return 0 <= dias_restantes <= 30
+        return False
+    
+    @property
+    def mantenimiento_vencido(self):
+        """Retorna True si el mantenimiento está vencido"""
+        if self.fecha_mantenimiento:
+            return self.fecha_mantenimiento < date.today()
         return False
 
     def __str__(self):

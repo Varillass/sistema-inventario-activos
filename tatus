@@ -1,0 +1,138 @@
+[1mdiff --git a/inventario/templates/inventario/equipos_lista.html b/inventario/templates/inventario/equipos_lista.html[m
+[1mindex fee6c4b..cb6705c 100644[m
+[1m--- a/inventario/templates/inventario/equipos_lista.html[m
+[1m+++ b/inventario/templates/inventario/equipos_lista.html[m
+[36m@@ -270,25 +270,16 @@[m
+                             </div>[m
+                         </div>[m
+                         <div class="row">[m
+[31m-                            <div class="col-md-6 mb-3">[m
+[31m-                                <label class="form-label">Estado</label>[m
+[31m-                                <select class="form-select" name="estado" required>[m
+[31m-                                    <option value="">Seleccionar estado</option>[m
+[31m-                                    {% for estado in estados %}[m
+[31m-                                    <option value="{{ estado.id }}">{{ estado.nombre }}</option>[m
+[31m-                                    {% endfor %}[m
+[31m-                                </select>[m
+[31m-                            </div>[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Marca</label>[m
+                                 <input type="text" class="form-control" name="marca" placeholder="Marca del equipo">[m
+                             </div>[m
+[31m-                        </div>[m
+[31m-                        <div class="row">[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Modelo</label>[m
+                                 <input type="text" class="form-control" name="modelo" placeholder="Modelo del equipo">[m
+                             </div>[m
+[32m+[m[32m                        </div>[m
+[32m+[m[32m                        <div class="row">[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Precio</label>[m
+                                 <div class="input-group">[m
+[36m@@ -296,33 +287,32 @@[m
+                                     <input type="number" class="form-control" name="precio" step="0.01" min="0" placeholder="0.00">[m
+                                 </div>[m
+                             </div>[m
+[31m-                        </div>[m
+[31m-                        <div class="row">[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Proveedor</label>[m
+                                 <input type="text" class="form-control" name="proveedor" placeholder="Proveedor del equipo">[m
+                             </div>[m
+[32m+[m[32m                        </div>[m
+[32m+[m[32m                        <div class="row">[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Fecha de Compra</label>[m
+                                 <input type="date" class="form-control" name="fecha_compra">[m
+                             </div>[m
+[31m-                        </div>[m
+[31m-                        <div class="row">[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Garantía Hasta</label>[m
+                                 <input type="date" class="form-control" name="garantia_hasta">[m
+                             </div>[m
+[32m+[m[32m                        </div>[m
+[32m+[m[32m                        <div class="row">[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Fecha de Mantenimiento</label>[m
+                                 <input type="date" class="form-control" name="fecha_mantenimiento">[m
+                             </div>[m
+[31m-                        </div>[m
+[31m-                        <div class="row">[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Vida Útil (años)</label>[m
+                                 <input type="number" class="form-control" name="vida_util" min="0" placeholder="Años de vida útil estimada">[m
+                             </div>[m
+                         </div>[m
+[32m+[m
+                         <div class="mb-3">[m
+                             <label class="form-label">Observación</label>[m
+                             <textarea class="form-control" name="observacion" rows="3" placeholder="Observaciones adicionales sobre el equipo"></textarea>[m
+[36m@@ -414,25 +404,16 @@[m
+                             </div>[m
+                         </div>[m
+                         <div class="row">[m
+[31m-                            <div class="col-md-6 mb-3">[m
+[31m-                                <label class="form-label">Estado</label>[m
+[31m-                                <select class="form-select" name="estado" id="editEstado" required>[m
+[31m-                                    <option value="">Seleccionar estado</option>[m
+[31m-                                    {% for estado in estados %}[m
+[31m-                                    <option value="{{ estado.id }}">{{ estado.nombre }}</option>[m
+[31m-                                    {% endfor %}[m
+[31m-                                </select>[m
+[31m-                            </div>[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Marca</label>[m
+                                 <input type="text" class="form-control" name="marca" id="editMarca" placeholder="Marca del equipo">[m
+                             </div>[m
+[31m-                        </div>[m
+[31m-                        <div class="row">[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Modelo</label>[m
+                                 <input type="text" class="form-control" name="modelo" id="editModelo" placeholder="Modelo del equipo">[m
+                             </div>[m
+[32m+[m[32m                        </div>[m
+[32m+[m[32m                        <div class="row">[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Precio</label>[m
+                                 <div class="input-group">[m
+[36m@@ -440,33 +421,32 @@[m
+                                     <input type="number" class="form-control" name="precio" id="editPrecio" step="0.01" min="0" placeholder="0.00">[m
+                                 </div>[m
+                             </div>[m
+[31m-                        </div>[m
+[31m-                        <div class="row">[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Proveedor</label>[m
+                                 <input type="text" class="form-control" name="proveedor" id="editProveedor" placeholder="Proveedor del equipo">[m
+                             </div>[m
+[32m+[m[32m                        </div>[m
+[32m+[m[32m                        <div class="row">[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Fecha de Compra</label>[m
+                                 <input type="date" class="form-control" name="fecha_compra" id="editFechaCompra">[m
+                             </div>[m
+[31m-                        </div>[m
+[31m-                        <div class="row">[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Garantía Hasta</label>[m
+                                 <input type="date" class="form-control" name="garantia_hasta" id="editGarantiaHasta">[m
+                             </div>[m
+[32m+[m[32m                        </div>[m
+[32m+[m[32m                        <div class="row">[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Fecha de Mantenimiento</label>[m
+                                 <input type="date" class="form-control" name="fecha_mantenimiento" id="editFechaMantenimiento">[m
+                             </div>[m
+[31m-                        </div>[m
+[31m-                        <div class="row">[m
+                             <div class="col-md-6 mb-3">[m
+                                 <label class="form-label">Vida Útil (años)</label>[m
+                                 <input type="number" class="form-control" name="vida_util" id="editVidaUtil" min="0" placeholder="Años de vida útil estimada">[m
+                             </div>[m
+                         </div>[m
+[32m+[m
+                         <div class="mb-3">[m
+                             <label class="form-label">Observación</label>[m
+                             <textarea class="form-control" name="observacion" id="editObservacion" rows="3" placeholder="Observaciones adicionales sobre el equipo"></textarea>[m

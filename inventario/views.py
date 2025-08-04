@@ -4,6 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 import json
+from datetime import date, timedelta
 from .models import Equipo, Estado, Area, Sede
 from django.db.models import Count
 # from .utils import generar_pdf_equipos  # Comentado temporalmente para evitar errores de reportlab
@@ -59,10 +60,31 @@ def dashboard(request):
     # Áreas con más equipos
     areas = Area.objects.annotate(total_equipos=Count('equipos')).order_by('-total_equipos')[:5]
 
+    # Equipos con próximo mantenimiento (próximos 30 días)
+    equipos_mantenimiento_proximo = Equipo.objects.filter(
+        fecha_mantenimiento__gte=date.today(),
+        fecha_mantenimiento__lte=date.today() + timedelta(days=30)
+    ).select_related('sede', 'area', 'estado').order_by('fecha_mantenimiento')[:10]
+
+    # Equipos con mantenimiento vencido
+    equipos_mantenimiento_vencido = Equipo.objects.filter(
+        fecha_mantenimiento__lt=date.today()
+    ).select_related('sede', 'area', 'estado').order_by('fecha_mantenimiento')[:5]
+
+    # Calcular días restantes para equipos con próximo mantenimiento
+    for equipo in equipos_mantenimiento_proximo:
+        equipo.dias_restantes = (equipo.fecha_mantenimiento - date.today()).days
+
+    # Calcular días vencidos para equipos con mantenimiento vencido
+    for equipo in equipos_mantenimiento_vencido:
+        equipo.dias_vencidos = (date.today() - equipo.fecha_mantenimiento).days
+
     context = {
         'total_por_estado': total_por_estado,
         'areas': areas,
         'total_equipos': Equipo.objects.count(),
+        'equipos_mantenimiento_proximo': equipos_mantenimiento_proximo,
+        'equipos_mantenimiento_vencido': equipos_mantenimiento_vencido,
     }
     return render(request, 'inventario/dashboard.html', context)
 
@@ -115,6 +137,20 @@ def crear_equipo(request):
         if garantia_hasta == '' or garantia_hasta is None:
             garantia_hasta = None
         
+        # Procesar campos de mantenimiento
+        fecha_mantenimiento = data.get('fecha_mantenimiento')
+        if fecha_mantenimiento == '' or fecha_mantenimiento is None:
+            fecha_mantenimiento = None
+            
+        vida_util = data.get('vida_util')
+        if vida_util == '' or vida_util is None:
+            vida_util = None
+        elif vida_util:
+            try:
+                vida_util = int(vida_util)
+            except (ValueError, TypeError):
+                vida_util = None
+        
         # Crear el equipo
         equipo = Equipo.objects.create(
             nombre=data['nombre'],
@@ -126,6 +162,8 @@ def crear_equipo(request):
             proveedor=data.get('proveedor', ''),
             fecha_compra=fecha_compra,
             garantia_hasta=garantia_hasta,
+            fecha_mantenimiento=fecha_mantenimiento,
+            vida_util=vida_util,
             observacion=data.get('observacion', ''),
             sede_id=data['sede'],
             area_id=data['area'],
@@ -199,6 +237,8 @@ def obtener_equipo(request, equipo_id):
                 'proveedor': getattr(equipo, 'proveedor', ''),
                 'fecha_compra': equipo.fecha_compra.strftime('%Y-%m-%d') if equipo.fecha_compra else '',
                 'garantia_hasta': equipo.garantia_hasta.strftime('%Y-%m-%d') if equipo.garantia_hasta else '',
+                'fecha_mantenimiento': equipo.fecha_mantenimiento.strftime('%Y-%m-%d') if equipo.fecha_mantenimiento else '',
+                'vida_util': str(equipo.vida_util) if equipo.vida_util else '',
             }
         })
         
@@ -243,6 +283,20 @@ def editar_equipo(request, equipo_id):
         if garantia_hasta == '' or garantia_hasta is None:
             garantia_hasta = None
         
+        # Procesar campos de mantenimiento
+        fecha_mantenimiento = data.get('fecha_mantenimiento')
+        if fecha_mantenimiento == '' or fecha_mantenimiento is None:
+            fecha_mantenimiento = None
+            
+        vida_util = data.get('vida_util')
+        if vida_util == '' or vida_util is None:
+            vida_util = None
+        elif vida_util:
+            try:
+                vida_util = int(vida_util)
+            except (ValueError, TypeError):
+                vida_util = None
+        
         # Actualizar el equipo
         equipo.nombre = data['nombre']
         equipo.tipo = data['tipo']
@@ -252,6 +306,8 @@ def editar_equipo(request, equipo_id):
         equipo.proveedor = data.get('proveedor', '')
         equipo.fecha_compra = fecha_compra
         equipo.garantia_hasta = garantia_hasta
+        equipo.fecha_mantenimiento = fecha_mantenimiento
+        equipo.vida_util = vida_util
         equipo.observacion = data.get('observacion', '')
         equipo.sede_id = data['sede']
         equipo.area_id = data['area']
