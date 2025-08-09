@@ -5,46 +5,48 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 import json
 from datetime import date, timedelta
-from .models import Equipo, Estado, Area, Sede
+from .models import Equipo, Estado, Area, Sede, PerfilUsuario
 from django.db.models import Count
+from .decorators import requiere_permiso, requiere_rol
 # from .utils import generar_pdf_equipos  # Comentado temporalmente para evitar errores de reportlab
 
 # Create your views here.
 
+# Funciones para asignar colores e iconos según el estado
+def get_estado_color(estado_nombre):
+    estado_colors = {
+        'Operativo': 'success',      # Verde
+        'Bueno': 'success',          # Verde
+        'Nuevo': 'info',             # Azul
+        'Regular': 'warning',        # Amarillo
+        'Mantenimiento': 'warning',  # Amarillo
+        'En Reparación': 'warning',  # Amarillo
+        'Malo': 'danger',            # Rojo
+        'Inoperativo': 'danger',     # Rojo
+        'Fuera de Servicio': 'danger', # Rojo
+        'Dado de Baja': 'secondary', # Gris
+        'En Almacén': 'info',        # Azul
+    }
+    return estado_colors.get(estado_nombre, 'primary')
+
+def get_estado_icon(estado_nombre):
+    estado_icons = {
+        'Operativo': 'fa-check-circle',
+        'Bueno': 'fa-check-circle',
+        'Nuevo': 'fa-star',
+        'Regular': 'fa-exclamation-triangle',
+        'Mantenimiento': 'fa-tools',
+        'En Reparación': 'fa-wrench',
+        'Malo': 'fa-times-circle',
+        'Inoperativo': 'fa-times-circle',
+        'Fuera de Servicio': 'fa-ban',
+        'Dado de Baja': 'fa-trash',
+        'En Almacén': 'fa-box',
+    }
+    return estado_icons.get(estado_nombre, 'fa-question-circle')
+
 @login_required
 def dashboard(request):
-    # Función para asignar colores según el estado
-    def get_estado_color(estado_nombre):
-        estado_colors = {
-            'Operativo': 'success',      # Verde
-            'Bueno': 'success',          # Verde
-            'Nuevo': 'info',             # Azul
-            'Regular': 'warning',        # Amarillo
-            'Mantenimiento': 'warning',  # Amarillo
-            'En Reparación': 'warning',  # Amarillo
-            'Malo': 'danger',            # Rojo
-            'Inoperativo': 'danger',     # Rojo
-            'Fuera de Servicio': 'danger', # Rojo
-            'Dado de Baja': 'secondary', # Gris
-            'En Almacén': 'info',        # Azul
-        }
-        return estado_colors.get(estado_nombre, 'primary')
-    
-    def get_estado_icon(estado_nombre):
-        estado_icons = {
-            'Operativo': 'fa-check-circle',
-            'Bueno': 'fa-check-circle',
-            'Nuevo': 'fa-star',
-            'Regular': 'fa-exclamation-triangle',
-            'Mantenimiento': 'fa-tools',
-            'En Reparación': 'fa-wrench',
-            'Malo': 'fa-times-circle',
-            'Inoperativo': 'fa-times-circle',
-            'Fuera de Servicio': 'fa-ban',
-            'Dado de Baja': 'fa-trash',
-            'En Almacén': 'fa-box',
-        }
-        return estado_icons.get(estado_nombre, 'fa-question-circle')
     
     # Totales por estado con colores e iconos
     estados = Estado.objects.all()
@@ -92,17 +94,37 @@ def dashboard(request):
 def equipos_lista(request):
     equipos = Equipo.objects.all().select_related('sede', 'area', 'estado')
     
+    # Filtro por código (número de serie)
+    codigo_busqueda = request.GET.get('codigo', '').strip()
+    if codigo_busqueda:
+        equipos = equipos.filter(numero_serie__icontains=codigo_busqueda)
+    
+    # Obtener el perfil del usuario
+    try:
+        perfil = request.user.perfil
+    except:
+        # Si no existe perfil, crear uno por defecto
+        perfil = PerfilUsuario.objects.create(usuario=request.user)
+    
+    # Agregar colores e iconos a cada equipo
+    for equipo in equipos:
+        equipo.estado_color = get_estado_color(equipo.estado.nombre)
+        equipo.estado_icon = get_estado_icon(equipo.estado.nombre)
+    
     context = {
         'equipos': equipos,
         'sedes': Sede.objects.all(),
         'areas': Area.objects.all(),
         'estados': Estado.objects.all(),
+        'perfil_usuario': perfil,
+        'codigo_busqueda': codigo_busqueda,  # Pasar el código de búsqueda al template
     }
     return render(request, 'inventario/equipos_lista.html', context)
 
 @csrf_exempt
 @require_http_methods(["POST"])
 @login_required
+@requiere_permiso('crear')
 def crear_equipo(request):
     try:
         data = json.loads(request.body)
@@ -251,6 +273,7 @@ def obtener_equipo(request, equipo_id):
 @csrf_exempt
 @require_http_methods(["POST"])
 @login_required
+@requiere_permiso('editar')
 def editar_equipo(request, equipo_id):
     try:
         equipo = get_object_or_404(Equipo, id=equipo_id)
@@ -372,6 +395,7 @@ def editar_equipo(request, equipo_id):
 @csrf_exempt
 @require_http_methods(["POST"])
 @login_required
+@requiere_permiso('eliminar')
 def eliminar_equipo(request, equipo_id):
     try:
         equipo = get_object_or_404(Equipo, id=equipo_id)
@@ -392,6 +416,7 @@ def eliminar_equipo(request, equipo_id):
         }, status=500)
 
 @login_required
+@requiere_permiso('exportar')
 def exportar_equipos_pdf(request):
     """
     Vista para exportar equipos a PDF
@@ -417,6 +442,7 @@ def exportar_equipos_pdf(request):
         }, status=500)
 
 @login_required
+@requiere_permiso('exportar')
 def exportar_equipos_excel(request):
     """
     Vista para exportar equipos a Excel
@@ -442,6 +468,7 @@ def exportar_equipos_excel(request):
         }, status=500)
 
 @login_required
+@requiere_permiso('importar')
 def descargar_plantilla_excel(request):
     """
     Vista para descargar plantilla Excel
@@ -464,6 +491,7 @@ def descargar_plantilla_excel(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 @login_required
+@requiere_permiso('importar')
 def importar_equipos_excel(request):
     """
     Vista para importar equipos desde Excel

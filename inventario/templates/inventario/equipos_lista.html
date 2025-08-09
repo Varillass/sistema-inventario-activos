@@ -10,6 +10,20 @@
             <div class="row align-items-center">
                 <div class="col-lg-8">
                     <div class="row g-3">
+                        <!-- Campo de búsqueda por código -->
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="buscarCodigo" 
+                                       placeholder="Buscar por código..." 
+                                       value="{{ codigo_busqueda }}">
+                                <button class="btn btn-outline-primary" type="button" id="btnBuscarCodigo">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
                         <div class="col-md-2">
                             <select class="form-select" id="filtroSede">
                                 <option value="">Todas las sedes</option>
@@ -54,7 +68,7 @@
                                 <option value="Otro">Otro</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <button class="btn btn-outline-secondary" id="limpiarFiltros">
                                 <i class="fas fa-times"></i> Limpiar
                             </button>
@@ -62,9 +76,12 @@
                     </div>
                 </div>
                 <div class="col-lg-4 text-end">
+                    {% if perfil_usuario.puede_crear %}
                     <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#agregarEquipoModal">
                         <i class="fas fa-plus"></i> Agregar Equipo
                     </button>
+                    {% endif %}
+                    {% if perfil_usuario.puede_importar %}
                     <div class="btn-group me-2" role="group">
                         <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#importarExcelModal">
                             <i class="fas fa-file-excel"></i> Importar Excel
@@ -73,12 +90,15 @@
                             <i class="fas fa-download"></i> Plantilla
                         </button>
                     </div>
+                    {% endif %}
+                    {% if perfil_usuario.puede_exportar %}
                     <button class="btn btn-outline-primary" id="exportarPdfBtn">
                         <i class="fas fa-file-pdf"></i> Exportar PDF
                     </button>
                     <button class="btn btn-outline-success" id="exportarExcelBtn">
                         <i class="fas fa-file-excel"></i> Exportar Excel
                     </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -88,6 +108,15 @@
     <div class="card">
         <div class="card-header bg-white">
             <h5 class="mb-0"><i class="fas fa-cogs text-primary"></i> Lista de Equipos</h5>
+            {% if codigo_busqueda %}
+            <div class="alert alert-info alert-sm mt-2 mb-0">
+                <i class="fas fa-search"></i> 
+                <strong>Búsqueda activa:</strong> Mostrando equipos con código que contenga "{{ codigo_busqueda }}"
+                <a href="{% url 'equipos_lista' %}" class="btn btn-sm btn-outline-secondary ms-2">
+                    <i class="fas fa-times"></i> Limpiar búsqueda
+                </a>
+            </div>
+            {% endif %}
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -147,13 +176,10 @@
                                 {{ equipo.area.nombre }}
                             </td>
                             <td>
-                                {% if equipo.estado.nombre == 'Operativo' %}
-                                <span class="badge bg-success">{{ equipo.estado.nombre }}</span>
-                                {% elif equipo.estado.nombre == 'Mantenimiento' %}
-                                <span class="badge bg-warning">{{ equipo.estado.nombre }}</span>
-                                {% else %}
-                                <span class="badge bg-danger">{{ equipo.estado.nombre }}</span>
-                                {% endif %}
+                                <span class="badge bg-{{ equipo.estado_color }}">
+                                    <i class="fas {{ equipo.estado_icon }}"></i>
+                                    {{ equipo.estado.nombre }}
+                                </span>
                             </td>
                             <td>
                                 {% if equipo.garantia_hasta %}
@@ -179,12 +205,16 @@
                                     <button class="btn btn-outline-primary btn-ver" data-id="{{ equipo.id }}" title="Ver">
                                         <i class="fas fa-eye"></i>
                                     </button>
+                                    {% if perfil_usuario.puede_editar %}
                                     <button class="btn btn-outline-warning btn-editar" data-id="{{ equipo.id }}" title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </button>
+                                    {% endif %}
+                                    {% if perfil_usuario.puede_eliminar %}
                                     <button class="btn btn-outline-danger btn-eliminar" data-id="{{ equipo.id }}" data-nombre="{{ equipo.nombre }}" data-serie="{{ equipo.numero_serie }}" title="Eliminar">
                                         <i class="fas fa-trash"></i>
                                     </button>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -687,15 +717,45 @@
                 table.column(1).search($(this).val()).draw();
             });
 
+            // Búsqueda por código
+            $('#btnBuscarCodigo').on('click', function() {
+                var codigo = $('#buscarCodigo').val().trim();
+                if (codigo) {
+                    // Redirigir a la misma página con el parámetro de búsqueda
+                    var url = new URL(window.location);
+                    url.searchParams.set('codigo', codigo);
+                    window.location.href = url.toString();
+                }
+            });
+
+            // Búsqueda por código al presionar Enter
+            $('#buscarCodigo').on('keypress', function(e) {
+                if (e.which === 13) { // Enter key
+                    $('#btnBuscarCodigo').click();
+                }
+            });
+
             // Limpiar filtros
             $('#limpiarFiltros').on('click', function() {
                 $('#filtroSede, #filtroArea, #filtroEstado, #filtroTipo').val('');
+                $('#buscarCodigo').val('');
                 table.search('').columns().search('').draw();
+                // Limpiar también la búsqueda por código
+                var url = new URL(window.location);
+                url.searchParams.delete('codigo');
+                window.location.href = url.toString();
             });
         } else {
             // Si no hay datos, deshabilitar filtros
             $('#filtroSede, #filtroArea, #filtroEstado, #filtroTipo, #limpiarFiltros').prop('disabled', true);
         }
+
+        // Si hay búsqueda por código activa, deshabilitar los filtros de DataTable
+        {% if codigo_busqueda %}
+        if (typeof table !== 'undefined') {
+            $('#filtroSede, #filtroArea, #filtroEstado, #filtroTipo').prop('disabled', true);
+        }
+        {% endif %}
 
         // Guardar equipo
         $('#guardarEquipo').on('click', function() {
@@ -1186,6 +1246,28 @@
     .btn-group .btn {
         flex: 1;
         white-space: nowrap;
+    }
+
+    /* Estilos para el campo de búsqueda */
+    #buscarCodigo {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+    
+    #btnBuscarCodigo {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+    
+    .alert-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    /* Resaltar el campo de búsqueda cuando está activo */
+    #buscarCodigo:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
     }
 </style>
 {% endblock %} 

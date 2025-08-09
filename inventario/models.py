@@ -1,9 +1,32 @@
 from django.db import models
 from django.db.models import Max
+from django.contrib.auth.models import User
 from datetime import date
 import re
 
 # Create your models here.
+
+class PerfilUsuario(models.Model):
+    ROLES_CHOICES = [
+        ('admin', 'Administrador'),
+        ('supervisor', 'Supervisor'),
+        ('usuario', 'Usuario'),
+    ]
+    
+    usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')
+    rol = models.CharField(max_length=20, choices=ROLES_CHOICES, default='usuario')
+    puede_eliminar = models.BooleanField(default=False, verbose_name="Puede eliminar equipos")
+    puede_editar = models.BooleanField(default=True, verbose_name="Puede editar equipos")
+    puede_crear = models.BooleanField(default=True, verbose_name="Puede crear equipos")
+    puede_exportar = models.BooleanField(default=True, verbose_name="Puede exportar datos")
+    puede_importar = models.BooleanField(default=False, verbose_name="Puede importar datos")
+    
+    def __str__(self):
+        return f"Perfil de {self.usuario.username} - {self.get_rol_display()}"
+    
+    class Meta:
+        verbose_name = "Perfil de Usuario"
+        verbose_name_plural = "Perfiles de Usuario"
 
 class Sede(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
